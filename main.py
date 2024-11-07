@@ -226,13 +226,22 @@ try:
             else:
                 print("\n\033[38;5;240mTEAM OVERVIEW")
                 for i in sorted(list(teams.keys())):
-                    print(f"[{i.upper()}] | {teams[i][0].capitalize()} + {teams[i][1].capitalize()} + {teams[i][2].capitalize()} + {teams[i][3].capitalize()}")
-            print("\n\033[0mEnter a team name to edit a preexisting or create a new one:")
+                    print(f"[{i.upper():17}] | {teams[i][0].capitalize()} + {teams[i][1].capitalize()} + {teams[i][2].capitalize()} + {teams[i][3].capitalize()}")
+            print("\n\033[0mEnter a team name to edit a preexisting or create a new one \033[38;5;240m(17 chars max)\033[0m:")
             target = ""
-            while not (len(target) in range(1,18)):
-                target = input("> \033[38;5;202m").strip().lower()
+            try:
+                while not (len(target) in range(1,18)):
+                    target = input("> \033[38;5;202m").strip().lower()
+            except:
+                continue
             print("\n\033[0mEnter target characters, seperated by comma:")
-            char_target = input("> \033[38;5;202m").lower().split(",")
+            try:
+                char_target = input("> \033[38;5;202m").lower().split(",")
+            except:
+                continue
+            if len(char_target) != 4:
+                input(f"\n\033[31m[ Invalid team size ]\033[0m")
+                continue
             for i in range(len(char_target)):
                 char_target[i] = char_target[i].lower().strip()
             bp_ignore = []
@@ -258,12 +267,18 @@ try:
             teams[target] = char_target
             with open("teamdata.json","w") as f:
                 json.dump(teams,f)
+            input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 5:
             target = input("Enter name: \033[38;5;202m").lower().strip()
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
                     input("\n\033[38;5;202m[ Character is already present. Press CTRL+C to cancel. ]\033[0m")
+                except:
+                    continue
+            else:
+                try:
+                    input("\n\033[38;5;202m[ Creating a new character entry. Press CTRL+C to cancel. ]\033[0m")
                 except:
                     continue
             prev_breakpoints = breakpoints
