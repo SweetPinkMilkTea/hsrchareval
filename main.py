@@ -5,28 +5,65 @@ import json, time, os, traceback
 if "chardata.json" not in os.listdir():
     with open("chardata.json","w") as f:
         json.dump({},f)
+if "breakpoints.json" not in os.listdir():
+    with open("breakpoints.json","w") as f:
+        json.dump({},f)
+if "teamdata.json" not in os.listdir():
+    with open("teamdata.json","w") as f:
+        json.dump({},f)
 
 with open("breakpoints.json") as f:
     breakpoints = json.load(f)
 try:
     while True:
         print("\033cHSR Character Build Rater\n\n",end="")
-        print("[1] - Lookup single characters")
-        print("[2] - Lookup all characters")
+        print("[1] - Lookup characters")
+        print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
-        print("[4] - Create/Edit breakpoints")
+        print("[4] - Create/Edit teams")
+        print("[5] - Create/Edit breakpoints")
         print("\033[38;5;240mCancel anything with CTRL C\033[0m")
         
-        menuindex = int(input("\n> "))
+        menuindex = int(input("\n>> "))
         if menuindex == 1:
             with open("chardata.json") as f:
                 characters = json.load(f)
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
-            print()
-            for i in range(len(characters)):
-                print(f"[{i+1:03}] - {list(characters.keys())[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[list(characters.keys())[i]]['updated'])/3600/24)}d ago\033[0m")
+            print("\033[7m #   | NAME           | SCORE       | ACC      | RATE |\033[0m\n     |                |             |          |      |")
+            for h in range(len(characters)):
+                allscore = []
+                allratio = []
+                for i in characters[sorted(list(characters.keys()))[h]]:
+                    if i != "updated":
+                        value1 = float(characters[sorted(list(characters.keys()))[h]][i])
+                        value2 = float(breakpoints[sorted(list(characters.keys()))[h]][i])
+                        value1 = int(value1) if value1.is_integer() else value1
+                        value2 = int(value2) if value2.is_integer() else value2
+                        ratio = 2*value1/value2-1
+                        if ratio < 0:
+                            ratio = 0
+                        if ratio > 1:
+                            ratio = 1
+                        score = 100000*ratio
+                        if ratio == 1:
+                            score += abs(value2 - value1)
+                        allscore.append(score)
+                        allratio.append(ratio)
+                score = f"{int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)):,}"
+                r_acc = round(sum(allratio*100)/len(allratio),2)
+                acc = f"{r_acc:,}%"
+                grade = "F"
+                gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
+                for i in [50,70,80,90,95,100]:
+                    if r_acc >= i:
+                        grade = gradelist[i]
+                    else:
+                        break
+                color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+            print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
             except:
@@ -39,13 +76,13 @@ try:
                 input("\n\033[31m[ Not an index ]\033[0m")
                 continue
             x = int(x)-1
-            print(f"\n\033[3;38;5;240m{list(characters.keys())[x].upper()}\n\033[0m\033[7m ATTR         | COMP                   | SCORE   |\033[0m\n              |                        |         |")
+            print(f"\n\033[3;38;5;240m{sorted(list(characters.keys()))[x].upper()}\n\033[0m\033[7m ATTR         | COMP                   | SCORE   |\033[0m\n              |                        |         |")
             allscore = []
             allratio = []
-            for i in characters[list(characters.keys())[x]]:
+            for i in characters[sorted(list(characters.keys()))[x]]:
                 if i != "updated":
-                    value1 = float(characters[list(characters.keys())[x]][i])
-                    value2 = float(breakpoints[list(characters.keys())[x]][i])
+                    value1 = float(characters[sorted(list(characters.keys()))[x]][i])
+                    value2 = float(breakpoints[sorted(list(characters.keys()))[x]][i])
                     value1 = int(value1) if value1.is_integer() else value1
                     value2 = int(value2) if value2.is_integer() else value2
                     ratio = 2*value1/value2-1
@@ -78,34 +115,41 @@ try:
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
-        elif menuindex == 2:
+        if menuindex == 2:
             with open("chardata.json") as f:
                 characters = json.load(f)
-            if len(characters) == 0:
-                input("\n\033[31m[ No characters added yet ]\033[0m")
+            with open("teamdata.json") as f:
+                teams = json.load(f)
+            if len(teams) == 0:
+                input("\n\033[31m[ No teams configured yet ]\033[0m")
                 continue
-            print("\033[7m NAME           | SCORE       | ACC      | RATE |\033[0m\n                |             |          |      |")
-            for h in range(len(characters)):
-                allscore = []
-                allratio = []
-                for i in characters[list(characters.keys())[h]]:
-                    if i != "updated":
-                        value1 = float(characters[list(characters.keys())[h]][i])
-                        value2 = float(breakpoints[list(characters.keys())[h]][i])
-                        value1 = int(value1) if value1.is_integer() else value1
-                        value2 = int(value2) if value2.is_integer() else value2
-                        ratio = 2*value1/value2-1
-                        if ratio < 0:
-                            ratio = 0
-                        if ratio > 1:
-                            ratio = 1
-                        score = 100000*ratio
-                        if ratio == 1:
-                            score += abs(value2 - value1)
-                        allscore.append(score)
-                        allratio.append(ratio)
-                score = f"{int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)):,}"
-                r_acc = round(sum(allratio*100)/len(allratio),2)
+            print("\033[7m #   | TEAM           | SCORE       | ACC      | RATE |\033[0m\n     |                |             |          |      |")
+            for h in range(len(teams)):
+                cumulativescore = []
+                cumulativeratio = []
+                for ii in teams[sorted(list(teams.keys()))[h]]:
+                    allscore = []
+                    allratio = []
+                    for i in characters[ii]:
+                        if i != "updated":
+                            value1 = float(characters[ii][i])
+                            value2 = float(breakpoints[ii][i])
+                            value1 = int(value1) if value1.is_integer() else value1
+                            value2 = int(value2) if value2.is_integer() else value2
+                            ratio = 2*value1/value2-1
+                            if ratio < 0:
+                                ratio = 0
+                            if ratio > 1:
+                                ratio = 1
+                            score = 100000*ratio
+                            if ratio == 1:
+                                score += abs(value2 - value1)
+                            allscore.append(score)
+                            allratio.append(ratio)
+                    cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
+                    cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
+                score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
+                r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                 acc = f"{r_acc:,}%"
                 grade = "F"
                 gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
@@ -115,24 +159,22 @@ try:
                     else:
                         break
                 color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                #print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
-                #print(f"[{i+1:03}] - {list(characters.keys())[h].upper()} | Last updated: {int((time.time() - characters[list(characters.keys())[h]]['updated'])/3600/24)}d ago\033[0m")
-                print(f" \033[38;5;{color[grade]}m{list(characters.keys())[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
             input("\n\033[38;5;240m[ <- ]\033[0m")
-        elif menuindex == 3:
+        if menuindex == 3:
             with open("chardata.json") as f:
                 characters = json.load(f)
             print("\033cSelect character:\n")
             nobp = []
             for i in range(len(breakpoints.keys())):
-                if list(breakpoints[list(breakpoints.keys())[i]].values()) == [-1] * 9:
-                    print(f"\033[38;5;245m[{i+1:03}] - \033[31m{list(breakpoints.keys())[i].upper()} [No Breakpoints]\033[0m")
+                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
+                    print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
                     nobp.append(i)
                 else:
-                    if not list(breakpoints.keys())[i] in characters.keys():
-                        print(f"\033[38;5;245m[{i+1:03}] - {list(breakpoints.keys())[i].upper()} | Not set\033[0m")
+                    if not sorted(list(breakpoints.keys()))[i] in characters.keys():
+                        print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
-                        print(f"[{i+1:03}] - {list(breakpoints.keys())[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[list(breakpoints.keys())[i]]['updated'])/(3600*24))}d ago\033[0m")
+                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
             try:
                 x = input("> ")
             except:
@@ -147,7 +189,7 @@ try:
             else:
                 input("\n\033[31m[ Not an index ]\033[0m")
                 continue
-            target = list(breakpoints.keys())[int(x)-1]
+            target = sorted(list(breakpoints.keys()))[int(x)-1]
             comp_mode = False
             if target in characters.keys():
                 lastdata = characters[target]
@@ -174,7 +216,49 @@ try:
             with open("chardata.json","w") as f:
                 json.dump(characters,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
-        elif menuindex == 4:
+        if menuindex == 4:
+            with open("teamdata.json") as f:
+                teams = json.load(f)
+            with open("chardata.json") as f:
+                characters = json.load(f)
+            if len(teams) == 0:
+                print("\n\033[38;5;240m[ No teams ]\033[0m")
+            else:
+                print("\n\033[38;5;240mTEAM OVERVIEW")
+                for i in sorted(list(teams.keys())):
+                    print(f"[{i.upper()}] | {teams[i][0].capitalize()} + {teams[i][1].capitalize()} + {teams[i][2].capitalize()} + {teams[i][3].capitalize()}")
+            print("\n\033[0mEnter a team name to edit a preexisting or create a new one:")
+            target = ""
+            while not (len(target) in range(1,18)):
+                target = input("> \033[38;5;202m").strip().lower()
+            print("\n\033[0mEnter target characters, seperated by comma:")
+            char_target = input("> \033[38;5;202m").lower().split(",")
+            for i in range(len(char_target)):
+                char_target[i] = char_target[i].lower().strip()
+            bp_ignore = []
+            for i in breakpoints:
+                if breakpoints[i].values() == [-1] * 9:
+                    bp_ignore.append(i)
+            team_ok = True
+            for i in char_target:
+                if not i in breakpoints:
+                    input(f"\n\033[31m[ Character not recognized ({i}) ]\033[0m")
+                    team_ok = False
+                    continue
+                if i in bp_ignore:
+                    input(f"\n\033[31m[ Character has no breakpoints ({i}) ]\033[0m")
+                    team_ok = False
+                    continue
+                if not i in characters:
+                    input(f"\n\033[31m[ No character information yet ({i}) ]\033[0m")
+                    team_ok = False
+                    continue
+            if not team_ok:
+                continue
+            teams[target] = char_target
+            with open("teamdata.json","w") as f:
+                json.dump(teams,f)
+        if menuindex == 5:
             target = input("Enter name: \033[38;5;202m").lower().strip()
             print("\033[0m",end="")
             if target in breakpoints.keys():
