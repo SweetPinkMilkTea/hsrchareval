@@ -1,5 +1,4 @@
 .backup
 bpcreate.py
-breakpoints.json
-chardata.json
+*.json
 *dev*
