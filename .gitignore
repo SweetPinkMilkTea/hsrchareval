@@ -1,4 +1,3 @@
 .backup
-bpcreate.py
 *.json
 *dev*
