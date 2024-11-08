@@ -22,6 +22,7 @@ try:
         print("[3] - Create/Edit personal character")
         print("[4] - Create/Edit teams")
         print("[5] - Create/Edit breakpoints")
+        print("[6] - Quickscan")
         print("\033[38;5;240mCancel anything with CTRL C\033[0m")
         
         menuindex = int(input("\n>> "))
@@ -235,13 +236,22 @@ try:
             else:
                 print("\n\033[38;5;240mTEAM OVERVIEW")
                 for i in sorted(list(teams.keys())):
-                    print(f"[{i.upper()}] | {teams[i][0].capitalize()} + {teams[i][1].capitalize()} + {teams[i][2].capitalize()} + {teams[i][3].capitalize()}")
-            print("\n\033[0mEnter a team name to edit a preexisting or create a new one:")
+                    print(f"[{i.upper():17}] | {teams[i][0].capitalize()} + {teams[i][1].capitalize()} + {teams[i][2].capitalize()} + {teams[i][3].capitalize()}")
+            print("\n\033[0mEnter a team name to edit a preexisting or create a new one \033[38;5;240m(17 chars max)\033[0m:")
             target = ""
-            while not (len(target) in range(1,18)):
-                target = input("> \033[38;5;202m").strip().lower()
+            try:
+                while not (len(target) in range(1,18)):
+                    target = input("> \033[38;5;202m").strip().lower()
+            except:
+                continue
             print("\n\033[0mEnter target characters, seperated by comma:")
-            char_target = input("> \033[38;5;202m").lower().split(",")
+            try:
+                char_target = input("> \033[38;5;202m").lower().split(",")
+            except:
+                continue
+            if len(char_target) != 4:
+                input(f"\n\033[31m[ Invalid team size ]\033[0m")
+                continue
             for i in range(len(char_target)):
                 char_target[i] = char_target[i].lower().strip()
             bp_ignore = []
@@ -267,12 +277,18 @@ try:
             teams[target] = char_target
             with open("teamdata.json","w") as f:
                 json.dump(teams,f)
+            input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 5:
             target = input("Enter name: \033[38;5;202m").lower().strip()
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
                     input("\n\033[38;5;202m[ Character is already present. Press CTRL+C to cancel. ]\033[0m")
+                except:
+                    continue
+            else:
+                try:
+                    input("\n\033[38;5;202m[ Creating a new character entry. Press CTRL+C to cancel. ]\033[0m")
                 except:
                     continue
             prev_breakpoints = breakpoints
@@ -293,6 +309,65 @@ try:
                 breakpoints = prev_breakpoints
                 input("\n\033[38;5;40m[ Aborted. Reverting. ]\033[0m")
                 continue
-                
+        if menuindex == 6:
+            target = input("Enter name: \033[38;5;202m").lower().strip()
+            print("\033[0m",end="")
+            with open("breakpoints.json") as f:
+                breakpoints = json.load(f)
+            if not target in breakpoints.keys():
+                input(f"\n\033[31m[ Character not recognized. ]\033[0m")
+                continue
+            q_char = {}
+            for i in ["hp","atk","def","spd","C-Rate","C-Dmg","break","energy regen","effect hit"]:
+                if breakpoints[target][i] != -1:
+                    while True:
+                        x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                        print("\033[0m",end="")
+                        try:
+                            float(x)
+                            break
+                        except:
+                            pass
+                    q_char[i] = x
+            print()
+            allscore = []
+            allratio = []
+            for i in q_char:
+                value1 = float(q_char[i])
+                value2 = float(breakpoints[target][i])
+                value1 = int(value1) if value1.is_integer() else value1
+                value2 = int(value2) if value2.is_integer() else value2
+                ratio = 2*value1/value2-1
+                if ratio < 0:
+                    ratio = 0
+                if ratio > 1:
+                    ratio = 1
+                score = 100000*ratio
+                if ratio == 1:
+                    score += abs(value2 - value1)
+                allscore.append(score)
+                allratio.append(ratio)
+                xvalue1 = f"{value1:,}"
+                xvalue2 = f"{value2:,}"
+                score = f"{int(score):,}"
+                #196 red
+                #202 orange
+                #220 yellow
+                #40 green
+                colorcode = [40,220,202,196]
+                col_index = 0
+                if value1 < value2:
+                    col_index += 1
+                if value1 < (value2 - value2/10):
+                    col_index += 1
+                if value1 < (value2 - value2/5):
+                    col_index += 1
+                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m / {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score.ljust(8)}|")
+            print("\n")
+            score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
+            print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            input("\n\033[38;5;240m[ <- ]\033[0m")
+
+
 except Exception as e:
     print(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
