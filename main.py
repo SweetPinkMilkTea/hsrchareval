@@ -317,6 +317,9 @@ try:
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
+            if list(breakpoints[target].values()) == [-1] * 9:
+                input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
+                continue
             q_char = {}
             for i in ["hp","atk","def","spd","C-Rate","C-Dmg","break","energy regen","effect hit"]:
                 if breakpoints[target][i] != -1:
