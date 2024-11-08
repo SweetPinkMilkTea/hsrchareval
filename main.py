@@ -127,6 +127,7 @@ try:
             for h in range(len(teams)):
                 cumulativescore = []
                 cumulativeratio = []
+                rank_str = ""
                 for ii in teams[sorted(list(teams.keys()))[h]]:
                     allscore = []
                     allratio = []
@@ -148,6 +149,14 @@ try:
                             allratio.append(ratio)
                     cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
                     cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
+                    grade = "F"
+                    gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
+                    for i in [50,70,80,90,95,100]:
+                        if cumulativeratio[-1] >= i:
+                            grade = gradelist[i]
+                        else:
+                            break
+                    rank_str += grade
                 score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
                 r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                 acc = f"{r_acc:,}%"
@@ -159,7 +168,7 @@ try:
                     else:
                         break
                 color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 3:
             with open("chardata.json") as f:
