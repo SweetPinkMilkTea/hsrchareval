@@ -1,22 +1,31 @@
-import json, time, os, traceback
-
-# input("\n\033[38;5;240m[ <- ]\033[0m")
-
-if "chardata.json" not in os.listdir():
-    with open("chardata.json","w") as f:
-        json.dump({},f)
-if "breakpoints.json" not in os.listdir():
-    with open("breakpoints.json","w") as f:
-        json.dump({},f)
-if "teamdata.json" not in os.listdir():
-    with open("teamdata.json","w") as f:
-        json.dump({},f)
-
-with open("breakpoints.json") as f:
-    breakpoints = json.load(f)
 try:
+    import json, time, os, traceback, requests
+    # input("\n\033[38;5;240m[ <- ]\033[0m")
+
+    if "uid.json" not in os.listdir():
+        with open("uid.json","w") as f:
+            json.dump({"main":0},f)
+    if "chardata.json" not in os.listdir():
+        with open("chardata.json","w") as f:
+            json.dump({},f)
+    if "breakpoints.json" not in os.listdir():
+        with open("breakpoints.json","w") as f:
+            json.dump({},f)
+    if "teamdata.json" not in os.listdir():
+        with open("teamdata.json","w") as f:
+            json.dump({},f)
+
+    with open("breakpoints.json") as f:
+        breakpoints = json.load(f)
+    try:
+        with open("uid.json") as f:
+            uid = json.load(f)["main"]
+    except:
+        uid = 0
+
     while True:
-        print("\033cHSR Character Build Rater\n\n",end="")
+        print("\033c\033[1mHSR Character Build Rater\033[0m")
+        print(f"\033[38;5;240mAuto-Import: {'None' if uid == 0 else 'Active @ '+uid}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
@@ -179,7 +188,7 @@ try:
             for i in range(len(breakpoints.keys())):
                 if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
                     print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
-                    nobp.append(i)
+                    nobp.append(i+1)
                 else:
                     if not sorted(list(breakpoints.keys()))[i] in characters.keys():
                         print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
@@ -205,20 +214,64 @@ try:
                 lastdata = characters[target]
                 comp_mode = True
             characters[target] = {}
-            for i in ["hp","atk","def","spd","C-Rate","C-Dmg","break","energy regen","effect hit"]:
+            if uid != 0:
+                api_name = {"topaz":"topaz & numby","march 8th":"march 7th","tb fire":"{nickname}","tb imaginary":"{nickname}","tb physical":"{nickname}","dan heng il":"dan heng • imbibitor lunae"}.get(target,target)
+                print(f"Target: {target}, API: {api_name}")
+                api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
+                api_chars = [x['name'].lower() for x in api_data["characters"]]
+                api_attr = {}
+                if api_name.lower() in api_chars:
+                    index = api_chars.index(api_name.lower())
+                    for i in api_data["characters"][index]["property"]:
+                        if "%" in i['base']:
+                            i['base'] = i['base'][:-1]
+                        i['base'] = float(i['base'])
+                        if i['name'] == 'Energy Regeneration Rate':
+                            api_attr['energy regen'] = i['base']
+                        elif i['name'] == 'Effect Hit Rate':
+                            api_attr['effect hit'] = i['base']
+                        else:
+                            api_attr[i['name'].lower()] = i['base']
+                        if i['name'] in ['Energy Regeneration Rate']:
+                            api_attr['energy regen'] += 100
+                        if not i['addition'] is None:
+                            api_attr[i['name'].lower()] += float(i['addition'])
+                    print(api_attr)
+                    if "energy regen" not in api_attr:
+                        api_attr['energy regen'] = 100
+                    if "break effect" not in api_attr:
+                        api_attr['break effect'] = 0
+                    if "effect hit" not in api_attr:
+                        api_attr['effect hit'] = 0
+                else:
+                    print("No data available to load. Continue entering manually.")
+            else:
+                api_attr = {}
+            print(api_attr)
+            for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                 if breakpoints[target][i] != -1:
                     while True:
-                        x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                        if api_attr == {}:
+                            x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                        else:
+                            print(f"\033[1m{i.upper()}\033[0m: \033[38;5;202m{api_attr[i.lower()]}")
+                            x = api_attr[i.lower()]
                         try:
                             float(x)
                             break
                         except:
                             pass
                     if comp_mode:
-                        if not i in ["C-Rate","C-Dmg","break","energy regen","effect hit"]:
-                            print(f"\033[38;5;{196 if int(x) <= int(lastdata[i]) else 40}m{'' if int(x) <= int(lastdata[i]) else '+'}{int(x) - int(lastdata[i])} \033[38;5;240m(from {int(lastdata[i])})\033[0m")
+                        if not i in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                            color = 196 if int(x) < int(lastdata[i]) else 40
+                            if int(x) == int(lastdata[i]):
+                                color = 240
+                            print(f"\033[38;5;{color}m{'' if int(x) <= int(lastdata[i]) else '+'}{int(x) - int(lastdata[i])} \033[38;5;240m(from {int(lastdata[i])})\033[0m")
                         else:
-                            print(f"\033[38;5;{196 if float(x) <= float(lastdata[i]) else 40}m{'' if float(x) <= float(lastdata[i]) else '+'}{round(float(x) - float(lastdata[i]),1)} \033[38;5;240m(from {float(lastdata[i])})\033[0m")
+                            color = 196 if float(x) < float(lastdata[i]) else 40
+                            if float(x) == float(lastdata[i]):
+                                color = 240
+                            print(f"\033[38;5;{color}m{'' if float(x) <= float(lastdata[i]) else '+'}{round(float(x) - float(lastdata[i]),1)} \033[38;5;240m(from {float(lastdata[i])})\033[0m")
                     else:
                         print("\033[0m",end="")
                     characters[target][i] = x
@@ -295,7 +348,7 @@ try:
             breakpoints[target] = {}
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
             try:
-                for i in ["hp","atk","def","spd","C-Rate","C-Dmg","break","energy regen","effect hit"]:
+                for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                     while True:
                         x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
                         if "," not in x:
@@ -321,7 +374,7 @@ try:
                 input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
             q_char = {}
-            for i in ["hp","atk","def","spd","C-Rate","C-Dmg","break","energy regen","effect hit"]:
+            for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                 if breakpoints[target][i] != -1:
                     while True:
                         x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
@@ -373,4 +426,4 @@ try:
 
 
 except Exception as e:
-    print(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
+    input(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
