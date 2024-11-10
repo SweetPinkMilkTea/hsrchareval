@@ -20,6 +20,8 @@ try:
     try:
         with open("uid.json") as f:
             uid = json.load(f)["main"]
+            if type(uid) != str and uid != 0:
+                raise TypeError("UID must be formatted as a string.")
     except:
         uid = 0
 
