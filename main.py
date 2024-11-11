@@ -17,7 +17,7 @@ try:
 
     with open("breakpoints.json") as f:
         breakpoints = json.load(f)
-        
+
     with open("uid.json") as f:
         uid = json.load(f)["main"]
         if type(uid) != str and uid != 0:
@@ -216,7 +216,6 @@ try:
             characters[target] = {}
             if uid != 0:
                 api_name = {"topaz":"topaz & numby","march 8th":"march 7th","tb fire":"{nickname}","tb imaginary":"{nickname}","tb physical":"{nickname}","dan heng il":"dan heng • imbibitor lunae"}.get(target,target)
-                print(f"Target: {target}, API: {api_name}")
                 api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
                 api_chars = [x['name'].lower() for x in api_data["characters"]]
                 api_attr = {}
@@ -236,7 +235,6 @@ try:
                             api_attr['energy regen'] += 100
                         if not i['addition'] is None:
                             api_attr[i['name'].lower()] += float(i['addition'])
-                    print(api_attr)
                     if "energy regen" not in api_attr:
                         api_attr['energy regen'] = 100
                     if "break effect" not in api_attr:
@@ -247,7 +245,6 @@ try:
                     print("No data available to load. Continue entering manually.")
             else:
                 api_attr = {}
-            print(api_attr)
             for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                 if breakpoints[target][i] != -1:
                     while True:
