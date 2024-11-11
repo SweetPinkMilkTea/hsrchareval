@@ -17,13 +17,11 @@ try:
 
     with open("breakpoints.json") as f:
         breakpoints = json.load(f)
-    try:
-        with open("uid.json") as f:
-            uid = json.load(f)["main"]
-            if type(uid) != str and uid != 0:
-                raise TypeError("UID must be formatted as a string.")
-    except:
-        uid = 0
+        
+    with open("uid.json") as f:
+        uid = json.load(f)["main"]
+        if type(uid) != str and uid != 0:
+            raise TypeError("UID must be formatted as a string.")
 
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
