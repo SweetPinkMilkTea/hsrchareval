@@ -32,9 +32,10 @@ try:
         print("[4] - Create/Edit teams")
         print("[5] - Create/Edit breakpoints")
         print("[6] - Quickscan")
-        print("\033[38;5;240mCancel anything with CTRL C\033[0m")
+        print("\n\033[38;5;240mCancel anything with CTRL C\033[0m")
         
         menuindex = int(input("\n>> "))
+        print()
         if menuindex == 1:
             with open("chardata.json") as f:
                 characters = json.load(f)
