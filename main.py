@@ -15,7 +15,7 @@ try:
         with open("teamdata.json","w") as f:
             json.dump({},f)
     if "bridgedata.json" not in os.listdir():
-        with open("teamdata.json","w") as f:
+        with open("bridgedata.json","w") as f:
             json.dump({},f)
 
     with open("breakpoints.json") as f:
