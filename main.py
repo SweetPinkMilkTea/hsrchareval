@@ -14,9 +14,18 @@ try:
     if "teamdata.json" not in os.listdir():
         with open("teamdata.json","w") as f:
             json.dump({},f)
+    if "bridgedata.json" not in os.listdir():
+        with open("teamdata.json","w") as f:
+            json.dump({},f)
 
     with open("breakpoints.json") as f:
         breakpoints = json.load(f)
+
+    with open("bridgedata.json") as f:
+        bridgedata = json.load(f)
+    for i in breakpoints:
+        if i not in bridgedata:
+            bridgedata[i] = {}
 
     with open("uid.json") as f:
         uid = json.load(f)["main"]
@@ -25,13 +34,14 @@ try:
 
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
-        print(f"\033[38;5;240mAuto-Import: {'None' if uid == 0 else 'Active @ '+uid}\n\033[0m")
+        print(f"\033[38;5;240mAuto-Import: {'OFF' if uid == 0 else 'ON ['+uid+']'}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
         print("[4] - Create/Edit teams")
         print("[5] - Create/Edit breakpoints")
-        print("[6] - Quickscan")
+        print("[6] - Create/Edit 'bridges'")
+        print("[7] - Quickscan")
         print("\n\033[38;5;240mCancel anything with CTRL C\033[0m")
         
         menuindex = int(input("\n>> "))
@@ -48,7 +58,7 @@ try:
                 allratio = []
                 for i in characters[sorted(list(characters.keys()))[h]]:
                     if i != "updated":
-                        value1 = float(characters[sorted(list(characters.keys()))[h]][i])
+                        value1 = float(characters[sorted(list(characters.keys()))[h]][i]) + bridgedata[sorted(list(characters.keys()))[h]].get(i,0)
                         value2 = float(breakpoints[sorted(list(characters.keys()))[h]][i])
                         value1 = int(value1) if value1.is_integer() else value1
                         value2 = int(value2) if value2.is_integer() else value2
@@ -92,7 +102,7 @@ try:
             allratio = []
             for i in characters[sorted(list(characters.keys()))[x]]:
                 if i != "updated":
-                    value1 = float(characters[sorted(list(characters.keys()))[x]][i])
+                    value1 = float(characters[sorted(list(characters.keys()))[x]][i]) + bridgedata[sorted(list(characters.keys()))[x]].get(i,0)
                     value2 = float(breakpoints[sorted(list(characters.keys()))[x]][i])
                     value1 = int(value1) if value1.is_integer() else value1
                     value2 = int(value2) if value2.is_integer() else value2
@@ -184,7 +194,7 @@ try:
         if menuindex == 3:
             with open("chardata.json") as f:
                 characters = json.load(f)
-            print("\033cSelect character:\n")
+            print("\033cSelect character to edit state of:\n")
             nobp = []
             for i in range(len(breakpoints.keys())):
                 if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
@@ -330,7 +340,11 @@ try:
                 json.dump(teams,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 5:
-            target = input("Enter name: \033[38;5;202m").lower().strip()
+            print("\033[38;5;202m\033[1mWarning:\033[22m\nYou are editing character target values.\nPress CTRL + C to return to main menu if you just want to enter your own character information.\033[0m\n")
+            try:
+                target = input("Enter name: \033[38;5;202m").lower().strip()
+            except:
+                continue
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
@@ -361,6 +375,39 @@ try:
                 input("\n\033[38;5;40m[ Aborted. Reverting. ]\033[0m")
                 continue
         if menuindex == 6:
+            print("\033[38;5;240m\033[1mInfo:\033[22m\nUse bridges to add values not reflected in base stats to characters. These can include Eidolons, Light Cone Effects or specific Relic Set-Boosts.\033[0m\n")
+            try:
+                target = input("\033[0mEnter name: \033[38;5;202m").lower().strip()
+                key = input("\033[0mEnter value key: \033[38;5;202m").lower().strip()
+            except:
+                continue
+            print("\033[0m",end="")
+            with open("breakpoints.json") as f:
+                breakpoints = json.load(f)
+            if not target in breakpoints.keys():
+                input(f"\n\033[31m[ Character not recognized. ]\033[0m")
+                continue
+            if list(breakpoints[target].values()) == [-1] * 9:
+                input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
+                continue
+            if not key in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                input(f"\n\033[31m[ Value key not recognized. ]\033[0m")
+                continue
+            try:
+                while True:
+                    x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m")
+                    if "," not in x:
+                        break
+                print("\033[0m",end="")
+                bridgedata[target][key] = int(x)
+                with open("bridgedata.json","w") as f:
+                    json.dump(bridgedata,f)
+                input("\n\033[38;5;40m[ Done. ]\033[0m")
+            except:
+                input("\n\033[38;5;40m[ Error. Aborting. ]\033[0m")
+                continue
+        if menuindex == 7:
+            print("\033[38;5;240m\033[1mInfo:\033[22m\nQuickscan is used for evaluating characters without saving thier state (e.g. charcters of other users).\nFor your own characters, use menu option #3 instead.\033[0m\n")
             target = input("Enter name: \033[38;5;202m").lower().strip()
             print("\033[0m",end="")
             with open("breakpoints.json") as f:
@@ -421,7 +468,6 @@ try:
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
-
 
 except Exception as e:
     input(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
