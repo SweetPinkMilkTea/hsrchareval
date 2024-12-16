@@ -366,7 +366,7 @@ try:
                         if "," not in x:
                             break
                     print("\033[0m",end="")
-                    breakpoints[target][i] = int(x)
+                    breakpoints[target][i] = float(x)
                 with open("breakpoints.json","w") as f:
                     json.dump(breakpoints,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
