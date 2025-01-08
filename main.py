@@ -2,9 +2,9 @@ try:
     import json, time, os, traceback, requests
     # input("\n\033[38;5;240m[ <- ]\033[0m")
 
-    if "uid.json" not in os.listdir():
+    if ".uid" not in os.listdir():
         with open("uid.json","w") as f:
-            json.dump({"main":0},f)
+            f.write("0")
     if "chardata.json" not in os.listdir():
         with open("chardata.json","w") as f:
             json.dump({},f)
@@ -27,14 +27,12 @@ try:
         if i not in bridgedata:
             bridgedata[i] = {}
 
-    with open("uid.json") as f:
-        uid = json.load(f)["main"]
-        if type(uid) != str and uid != 0:
-            raise TypeError("UID must be formatted as a string.")
+    with open(".uid") as f:
+        uid = f.read()
 
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
-        print(f"\033[38;5;240mAuto-Import: {'OFF' if uid == 0 else 'ON ['+uid+']'}\n\033[0m")
+        print(f"\033[38;5;240mAuto-Import: {'OFF' if uid == "0" else 'ON ['+uid+']'}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
@@ -225,7 +223,7 @@ try:
                 lastdata = characters[target]
                 comp_mode = True
             characters[target] = {}
-            if uid != 0:
+            if uid != "0":
                 api_name = {"topaz":"topaz & numby","march 8th":"march 7th","tb fire":"{nickname}","tb imaginary":"{nickname}","tb physical":"{nickname}","dan heng il":"dan heng • imbibitor lunae"}.get(target,target)
                 api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
                 api_chars = [x['name'].lower() for x in api_data["characters"]]
