@@ -250,10 +250,13 @@ try:
                         api_attr['break effect'] = 0
                     if "effect hit" not in api_attr:
                         api_attr['effect hit'] = 0
+                    if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() == "n":
+                        api_attr = {}
                 else:
                     print("No data available to load. Continue entering manually.")
             else:
                 api_attr = {}
+            print("\033[0m", end="")
             for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                 if breakpoints[target][i] != -1:
                     while True:
