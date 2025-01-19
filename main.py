@@ -3,7 +3,7 @@ try:
     # input("\n\033[38;5;240m[ <- ]\033[0m")
 
     if ".uid" not in os.listdir():
-        with open("uid.json","w") as f:
+        with open(".uid","w") as f:
             f.write("0")
     if "chardata.json" not in os.listdir():
         with open("chardata.json","w") as f:
