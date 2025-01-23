@@ -379,6 +379,11 @@ try:
                     breakpoints[target][i] = float(x)
                 with open("breakpoints.json","w") as f:
                     json.dump(breakpoints,f)
+                with open("bridgedata.json") as f:
+                    bridgedata = json.load(f)
+                for i in breakpoints:
+                    if i not in bridgedata:
+                        bridgedata[i] = {}
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except:
                 breakpoints = prev_breakpoints
