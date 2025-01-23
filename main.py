@@ -30,9 +30,18 @@ try:
     with open(".uid") as f:
         uid = f.read()
 
+    if uid == "0":
+        while True:
+            print("\033c\033[7m Quick-Import Setup               >\033[0m")
+            print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
+            uid = input("\n> ").strip()
+            if uid.isdigit():
+                break
+
+
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
-        print(f"\033[38;5;240mAuto-Import: {'OFF' if uid == "0" else 'ON ['+uid+']'}\n\033[0m")
+        print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == "0" else 'ON ['+uid+']'}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
@@ -50,7 +59,7 @@ try:
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
-            print("\033[7m #   | NAME           | SCORE       | ACC      | RATE |\033[0m\n     |                |             |          |      |")
+            print("\033[7m #   | NAME           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
             for h in range(len(characters)):
                 allscore = []
                 allratio = []
@@ -142,7 +151,7 @@ try:
             if len(teams) == 0:
                 input("\n\033[31m[ No teams configured yet ]\033[0m")
                 continue
-            print("\033[7m #   | TEAM           | SCORE       | ACC      | RATE |\033[0m\n     |                |             |          |      |")
+            print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
             for h in range(len(teams)):
                 cumulativescore = []
                 cumulativeratio = []
@@ -261,7 +270,7 @@ try:
                 if breakpoints[target][i] != -1:
                     while True:
                         if api_attr == {}:
-                            x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                            x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
                         else:
                             print(f"\033[1m{i.upper()}\033[0m: \033[38;5;202m{api_attr[i.lower()]}")
                             x = api_attr[i.lower()]
