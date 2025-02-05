@@ -266,33 +266,38 @@ try:
             else:
                 api_attr = {}
             print("\033[0m", end="")
-            for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                if breakpoints[target][i] != -1:
-                    while True:
-                        if api_attr == {}:
-                            x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
+            old_temp = characters[target]
+            try:
+                for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                    if breakpoints[target][i] != -1:
+                        while True:
+                            if api_attr == {}:
+                                x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
+                            else:
+                                print(f"\033[1m{i.upper()}\033[0m: \033[38;5;202m{api_attr[i.lower()]}")
+                                x = api_attr[i.lower()]
+                            try:
+                                float(x)
+                                break
+                            except:
+                                pass
+                        if comp_mode:
+                            if not i in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                                color = 196 if int(x) < int(lastdata[i]) else 40
+                                if int(x) == int(lastdata[i]):
+                                    color = 240
+                                print(f"\033[38;5;{color}m{'' if int(x) <= int(lastdata[i]) else '+'}{int(x) - int(lastdata[i])} \033[38;5;240m(from {int(lastdata[i])})\033[0m")
+                            else:
+                                color = 196 if float(x) < float(lastdata[i]) else 40
+                                if float(x) == float(lastdata[i]):
+                                    color = 240
+                                print(f"\033[38;5;{color}m{'' if float(x) <= float(lastdata[i]) else '+'}{round(float(x) - float(lastdata[i]),1)} \033[38;5;240m(from {float(lastdata[i])})\033[0m")
                         else:
-                            print(f"\033[1m{i.upper()}\033[0m: \033[38;5;202m{api_attr[i.lower()]}")
-                            x = api_attr[i.lower()]
-                        try:
-                            float(x)
-                            break
-                        except:
-                            pass
-                    if comp_mode:
-                        if not i in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                            color = 196 if int(x) < int(lastdata[i]) else 40
-                            if int(x) == int(lastdata[i]):
-                                color = 240
-                            print(f"\033[38;5;{color}m{'' if int(x) <= int(lastdata[i]) else '+'}{int(x) - int(lastdata[i])} \033[38;5;240m(from {int(lastdata[i])})\033[0m")
-                        else:
-                            color = 196 if float(x) < float(lastdata[i]) else 40
-                            if float(x) == float(lastdata[i]):
-                                color = 240
-                            print(f"\033[38;5;{color}m{'' if float(x) <= float(lastdata[i]) else '+'}{round(float(x) - float(lastdata[i]),1)} \033[38;5;240m(from {float(lastdata[i])})\033[0m")
-                    else:
-                        print("\033[0m",end="")
-                    characters[target][i] = x
+                            print("\033[0m",end="")
+                        characters[target][i] = x
+            except:
+                characters[target] = old_temp
+                continue
             characters[target]["updated"] = int(time.time())
             with open("chardata.json","w") as f:
                 json.dump(characters,f)
@@ -358,12 +363,12 @@ try:
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
-                    input("\n\033[38;5;202m[ Character is already present. Press CTRL+C to cancel. ]\033[0m")
+                    input("\n\033[38;5;202m[ Character is already present. Enter: Continue / CTRL+C: Cancel. ]\033[0m")
                 except:
                     continue
             else:
                 try:
-                    input("\n\033[38;5;202m[ Creating a new character entry. Press CTRL+C to cancel. ]\033[0m")
+                    input("\n\033[38;5;202m[ Creating a new character entry. Enter: Continue / CTRL+C: Cancel. ]\033[0m")
                 except:
                     continue
             prev_breakpoints = breakpoints
@@ -387,7 +392,7 @@ try:
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except:
                 breakpoints = prev_breakpoints
-                input("\n\033[38;5;40m[ Aborted. Reverting. ]\033[0m")
+                input("\n\033[31m[ Aborted. Reverting. ]\033[0m")
                 continue
         if menuindex == 6:
             print("\033[38;5;240m\033[1mInfo:\033[22m\nUse bridges to add values not reflected in base stats to characters. These can include Eidolons, Light Cone Effects or specific Relic Set-Boosts.\033[0m\n")
@@ -409,10 +414,7 @@ try:
                 input(f"\n\033[31m[ Value key not recognized. ]\033[0m")
                 continue
             try:
-                while True:
-                    x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m")
-                    if "," not in x:
-                        break
+                x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m").replace(",",".")
                 print("\033[0m",end="")
                 bridgedata[target][key] = int(x)
                 with open("bridgedata.json","w") as f:
@@ -423,7 +425,10 @@ try:
                 continue
         if menuindex == 7:
             print("\033[38;5;240m\033[1mInfo:\033[22m\nQuickscan is used for evaluating characters without saving thier state (e.g. charcters of other users).\nFor your own characters, use menu option #3 instead.\033[0m\n")
-            target = input("Enter name: \033[38;5;202m").lower().strip()
+            try:
+                target = input("Enter name: \033[38;5;202m").lower().strip()
+            except:
+                continue
             print("\033[0m",end="")
             with open("breakpoints.json") as f:
                 breakpoints = json.load(f)
