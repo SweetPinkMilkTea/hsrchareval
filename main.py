@@ -1,5 +1,6 @@
 try:
     import json, time, os, traceback, requests
+    from bs4 import BeautifulSoup
     # input("\n\033[38;5;240m[ <- ]\033[0m")
 
     if ".uid" not in os.listdir():
@@ -17,6 +18,9 @@ try:
     if "bridgedata.json" not in os.listdir():
         with open("bridgedata.json","w") as f:
             json.dump({},f)
+    if "importignore.json" not in os.listdir():
+        with open("importignore.json","w") as f:
+            json.dump({"keys":[]},f)
 
     with open("breakpoints.json") as f:
         breakpoints = json.load(f)
@@ -38,7 +42,6 @@ try:
             if uid.isdigit():
                 break
 
-
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
         print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == "0" else 'ON ['+uid+']'}\n\033[0m")
@@ -49,6 +52,7 @@ try:
         print("[5] - Create/Edit breakpoints")
         print("[6] - Create/Edit 'bridges'")
         print("[7] - Quickscan")
+        print("\033[38;5;240m[0] - Fetch characters")
         print("\n\033[38;5;240mCancel anything with CTRL C\033[0m")
         
         menuindex = int(input("\n>> "))
@@ -421,7 +425,7 @@ try:
                     json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except:
-                input("\n\033[38;5;40m[ Error. Aborting. ]\033[0m")
+                input("\n\033[31m[ Error. Aborting. ]\033[0m")
                 continue
         if menuindex == 7:
             print("\033[38;5;240m\033[1mInfo:\033[22m\nQuickscan is used for evaluating characters without saving thier state (e.g. charcters of other users).\nFor your own characters, use menu option #3 instead.\033[0m\n")
@@ -488,6 +492,54 @@ try:
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
+        if menuindex == 0:
+            try:
+                with open("importignore.json") as f:
+                    ignore = json.load(f)
+                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
+                response = requests.get("https://www.prydwen.gg/star-rail/characters")
+                response.raise_for_status()
+                main = BeautifulSoup(response.text, 'html.parser').find_all("span", {"class", "emp-name"})
+                entryindex = len(main)
+                for object in main:
+                    if not (object.text.lower() not in breakpoints.keys() and object.text.lower() not in ignore["keys"]):
+                        entryindex -= 1
+                if entryindex == 0:
+                    input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
+                    continue
+                print(f"Expecting {entryindex} new entries.")
+                print("0: Ignore / 1: Change name and add / 2: Directly add")
+                for object in main:
+                    target = object.text.lower()
+                    if target not in breakpoints.keys() and target not in ignore["keys"]:
+                        while True:
+                            index = input(f"{target.upper()} >> ")
+                            if index.isdigit():
+                                if int(index) <= 2 and int(index) >= 0:
+                                    index = int(index)
+                                    break
+                        if index == 0:
+                            ignore["keys"].append(target)
+                        elif index == 1:
+                            ignore["keys"].append(target)
+                            target = input("Enter new ID: ").lower()
+                            breakpoints[target] = creation_template
+                        elif index == 2:
+                            breakpoints[target] = creation_template
+                with open("importignore.json","w") as f:
+                    json.dump(ignore,f)
+                with open("breakpoints.json","w") as f:
+                    json.dump(breakpoints,f)
+                input("\n\033[38;5;40m[ Done. ]\033[0m")
+            except requests.exceptions.RequestException as e:
+                input("\n\033[31m[ Request has failed. ]\033[0m")
+            except KeyboardInterrupt:
+                input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
+                raise KeyboardInterrupt()
+            except:
+                input("\n\033[31m[ Error. Closing session. ]\033[0m")
 
+except ModuleNotFoundError:
+    input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
 except Exception as e:
     input(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
