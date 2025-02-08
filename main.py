@@ -44,7 +44,7 @@ try:
 
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
-        print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == "0" else 'ON ['+uid+']'}\n\033[0m")
+        print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == '0' else 'ON ['+uid+']'}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
@@ -205,17 +205,32 @@ try:
         if menuindex == 3:
             with open("chardata.json") as f:
                 characters = json.load(f)
+            print("\033c\033[7m Select List Mode                 >\033[0m\n\n[1] - All\n[2] - Only already set")
+            try:
+                lm = int(input("> "))
+                if lm not in [1,2]:
+                    raise ValueError("Invalid Index")
+            except:
+                continue
             print("\033cSelect character to edit state of:\n")
             nobp = []
-            for i in range(len(breakpoints.keys())):
-                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
-                    print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
-                    nobp.append(i+1)
-                else:
+            if lm == 1:
+                for i in range(len(breakpoints.keys())):
+                    if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
+                        print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
+                        nobp.append(i+1)
+                    else:
+                        if not sorted(list(breakpoints.keys()))[i] in characters.keys():
+                            print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
+                        else:
+                            print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
+            if lm == 2:
+                for i in range(len(breakpoints.keys())):
                     if not sorted(list(breakpoints.keys()))[i] in characters.keys():
-                        print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
+                        pass
                     else:
                         print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
+
             try:
                 x = input("> ")
             except:
