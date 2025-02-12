@@ -165,7 +165,7 @@ try:
                     allratio = []
                     for i in characters[ii]:
                         if i != "updated":
-                            value1 = float(characters[ii][i])
+                            value1 = float(characters[ii][i]) + bridgedata[ii].get(i,0)
                             value2 = float(breakpoints[ii][i])
                             value1 = int(value1) if value1.is_integer() else value1
                             value2 = int(value2) if value2.is_integer() else value2
