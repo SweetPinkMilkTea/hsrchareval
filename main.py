@@ -34,6 +34,58 @@ try:
     with open(".uid") as f:
         uid = f.read()
 
+    if len(breakpoints) == 0:
+        while True:
+            print("\033c\033[7m First-Run Setup               >\033[0m")
+            print("\nImport all available characters to create breakpoint templates?\n\n\033[38;5;240m0: No / 1: Yes.\033[0m")
+            index = input("\n> ").strip()
+            if index.isdigit():
+                break
+        if index == "1":
+            try:
+                with open("importignore.json") as f:
+                    ignore = json.load(f)
+                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
+                response = requests.get("https://www.prydwen.gg/star-rail/characters")
+                response.raise_for_status()
+                main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
+                entryindex = len(main)
+                for object in main:
+                    objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                    if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
+                        entryindex -= 1
+                print(f"Expecting {entryindex} entries.")
+                print("1: Change name / 2: Accept name")
+                for object in main:
+                    target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                    if target not in breakpoints.keys() and target not in ignore["keys"]:
+                        while True:
+                            index = input(f"{target.upper()} >> ")
+                            if index.isdigit():
+                                if int(index) <= 2 and int(index) >= 0:
+                                    index = int(index)
+                                    break
+                        if index == 0:
+                            ignore["keys"].append(target)
+                        elif index == 1:
+                            ignore["keys"].append(target)
+                            target = input("Enter new ID: ").lower()
+                            breakpoints[target] = creation_template
+                        elif index == 2:
+                            breakpoints[target] = creation_template
+                with open("importignore.json","w") as f:
+                    json.dump(ignore,f)
+                with open("breakpoints.json","w") as f:
+                    json.dump(breakpoints,f)
+                input("\n\033[38;5;40m[ Done. ]\033[0m")
+            except requests.exceptions.RequestException as e:
+                input("\n\033[31m[ Request has failed. ]\033[0m")
+            except KeyboardInterrupt:
+                input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
+                raise KeyboardInterrupt()
+            except Exception as e:
+                input(f"\n\033[31m[ {e} ]\033[0m")
+
     if uid == "0":
         while True:
             print("\033c\033[7m Quick-Import Setup               >\033[0m")
@@ -514,10 +566,11 @@ try:
                 creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
                 response = requests.get("https://www.prydwen.gg/star-rail/characters")
                 response.raise_for_status()
-                main = BeautifulSoup(response.text, 'html.parser').find_all("span", {"class", "emp-name"})
+                main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
                 entryindex = len(main)
                 for object in main:
-                    if not (object.text.lower() not in breakpoints.keys() and object.text.lower() not in ignore["keys"]):
+                    objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                    if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
                         entryindex -= 1
                 if entryindex == 0:
                     input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
@@ -525,7 +578,7 @@ try:
                 print(f"Expecting {entryindex} new entries.")
                 print("0: Ignore / 1: Change name and add / 2: Directly add")
                 for object in main:
-                    target = object.text.lower()
+                    target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
                     if target not in breakpoints.keys() and target not in ignore["keys"]:
                         while True:
                             index = input(f"{target.upper()} >> ")
@@ -551,8 +604,8 @@ try:
             except KeyboardInterrupt:
                 input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
                 raise KeyboardInterrupt()
-            except:
-                input("\n\033[31m[ Error. Closing session. ]\033[0m")
+            except Exception as e:
+                input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
