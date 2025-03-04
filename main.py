@@ -92,6 +92,8 @@ try:
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
+                with open(".uid","w") as f:
+                    f.write(str(uid))
                 break
 
     while True:
@@ -200,60 +202,63 @@ try:
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
-            with open("chardata.json") as f:
-                characters = json.load(f)
-            with open("teamdata.json") as f:
-                teams = json.load(f)
-            if len(teams) == 0:
-                input("\n\033[31m[ No teams configured yet ]\033[0m")
-                continue
-            print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
-            for h in range(len(teams)):
-                cumulativescore = []
-                cumulativeratio = []
-                rank_str = ""
-                for ii in teams[sorted(list(teams.keys()))[h]]:
-                    allscore = []
-                    allratio = []
-                    for i in characters[ii]:
-                        if i != "updated":
-                            value1 = float(characters[ii][i]) + bridgedata[ii].get(i,0)
-                            value2 = float(breakpoints[ii][i])
-                            value1 = int(value1) if value1.is_integer() else value1
-                            value2 = int(value2) if value2.is_integer() else value2
-                            ratio = 2*value1/value2-1
-                            if ratio < 0:
-                                ratio = 0
-                            if ratio > 1:
-                                ratio = 1
-                            score = 100000*ratio
-                            if ratio == 1:
-                                score += abs(value2 - value1)
-                            allscore.append(score)
-                            allratio.append(ratio)
-                    cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
-                    cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
+            try:
+                with open("chardata.json") as f:
+                    characters = json.load(f)
+                with open("teamdata.json") as f:
+                    teams = json.load(f)
+                if len(teams) == 0:
+                    input("\n\033[31m[ No teams configured yet ]\033[0m")
+                    continue
+                print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
+                for h in range(len(teams)):
+                    cumulativescore = []
+                    cumulativeratio = []
+                    rank_str = ""
+                    for ii in teams[sorted(list(teams.keys()))[h]]:
+                        allscore = []
+                        allratio = []
+                        for i in characters[ii]:
+                            if i != "updated":
+                                value1 = float(characters[ii][i]) + bridgedata[ii].get(i,0)
+                                value2 = float(breakpoints[ii][i])
+                                value1 = int(value1) if value1.is_integer() else value1
+                                value2 = int(value2) if value2.is_integer() else value2
+                                ratio = 2*value1/value2-1
+                                if ratio < 0:
+                                    ratio = 0
+                                if ratio > 1:
+                                    ratio = 1
+                                score = 100000*ratio
+                                if ratio == 1:
+                                    score += abs(value2 - value1)
+                                allscore.append(score)
+                                allratio.append(ratio)
+                        cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
+                        cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
+                        grade = "F"
+                        gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
+                        for i in [50,70,80,90,95,100]:
+                            if cumulativeratio[-1] >= i:
+                                grade = gradelist[i]
+                            else:
+                                break
+                        rank_str += grade
+                    score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
+                    r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
+                    acc = f"{r_acc:,}%"
                     grade = "F"
                     gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
                     for i in [50,70,80,90,95,100]:
-                        if cumulativeratio[-1] >= i:
+                        if r_acc >= i:
                             grade = gradelist[i]
                         else:
                             break
-                    rank_str += grade
-                score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
-                r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
-                acc = f"{r_acc:,}%"
-                grade = "F"
-                gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
-                for i in [50,70,80,90,95,100]:
-                    if r_acc >= i:
-                        grade = gradelist[i]
-                    else:
-                        break
-                color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
-            input("\n\033[38;5;240m[ <- ]\033[0m")
+                    color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
+                    print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                input("\n\033[38;5;240m[ <- ]\033[0m")
+            except:
+                continue
         if menuindex == 3:
             with open("chardata.json") as f:
                 characters = json.load(f)
@@ -266,20 +271,15 @@ try:
                 continue
             print("\033cSelect character to edit state of:\n")
             nobp = []
-            if lm == 1:
-                for i in range(len(breakpoints.keys())):
-                    if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
+            for i in range(len(breakpoints.keys())):
+                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
+                    if lm == 1:
                         print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
                         nobp.append(i+1)
-                    else:
-                        if not sorted(list(breakpoints.keys()))[i] in characters.keys():
-                            print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
-                        else:
-                            print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
-            if lm == 2:
-                for i in range(len(breakpoints.keys())):
+                else:
                     if not sorted(list(breakpoints.keys()))[i] in characters.keys():
-                        pass
+                        if lm == 1:
+                            print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
                         print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
 
