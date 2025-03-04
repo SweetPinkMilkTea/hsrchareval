@@ -21,6 +21,9 @@ try:
     if "importignore.json" not in os.listdir():
         with open("importignore.json","w") as f:
             json.dump({"keys":[]},f)
+    if "apinamemap.json" not in os.listdir():
+        with open("apinamemap.json","w") as f:
+            json.dump({},f)
 
     with open("breakpoints.json") as f:
         breakpoints = json.load(f)
@@ -33,6 +36,9 @@ try:
 
     with open(".uid") as f:
         uid = f.read()
+        
+    with open("apinamemap.json") as f:
+        api_name_mapping = json.load(f)
 
     if len(breakpoints) == 0:
         while True:
@@ -106,7 +112,7 @@ try:
         print("[5] - Create/Edit breakpoints")
         print("[6] - Create/Edit 'bridges'")
         print("[7] - Quickscan")
-        print("\033[38;5;240m[0] - Fetch characters")
+        print("\033[38;5;240m[0] - Edit configuration")
         print("\n\033[38;5;240mCancel anything with CTRL C\033[0m")
         
         menuindex = int(input("\n>> "))
@@ -304,7 +310,7 @@ try:
                 comp_mode = True
             characters[target] = {}
             if uid != "0":
-                api_name = {"topaz":"topaz & numby","march 8th":"march 7th","tb fire":"{nickname}","tb imaginary":"{nickname}","tb physical":"{nickname}","dan heng il":"dan heng • imbibitor lunae"}.get(target,target)
+                api_name = api_name_mapping.get(target,target)
                 api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
                 api_chars = [x['name'].lower() for x in api_data["characters"]]
                 api_attr = {}
@@ -333,7 +339,7 @@ try:
                     if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() == "n":
                         api_attr = {}
                 else:
-                    print("No data available to load. Continue entering manually.")
+                    print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
             else:
                 api_attr = {}
             print("\033[0m", end="")
@@ -560,52 +566,155 @@ try:
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
+            print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n")
             try:
-                with open("importignore.json") as f:
-                    ignore = json.load(f)
-                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
-                response = requests.get("https://www.prydwen.gg/star-rail/characters")
-                response.raise_for_status()
-                main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
-                entryindex = len(main)
-                for object in main:
-                    objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                    if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
-                        entryindex -= 1
-                if entryindex == 0:
-                    input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
+                lm = int(input("> "))
+                if lm not in range(1,4):
+                    raise ValueError("Invalid Index")
+            except:
+                continue
+            if lm == 1:
+                try:
+                    with open("importignore.json") as f:
+                        ignore = json.load(f)
+                    creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
+                    response = requests.get("https://www.prydwen.gg/star-rail/characters")
+                    response.raise_for_status()
+                    main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
+                    entryindex = len(main)
+                    for object in main:
+                        objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                        if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
+                            entryindex -= 1
+                    if entryindex == 0:
+                        input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
+                        continue
+                    print(f"Expecting {entryindex} new entries.")
+                    print("0: Ignore / 1: Change name and add / 2: Directly add")
+                    for object in main:
+                        target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                        if target not in breakpoints.keys() and target not in ignore["keys"]:
+                            while True:
+                                index = input(f"{target.upper()} >> ")
+                                if index.isdigit():
+                                    if int(index) <= 2 and int(index) >= 0:
+                                        index = int(index)
+                                        break
+                            if index == 0:
+                                ignore["keys"].append(target)
+                            elif index == 1:
+                                ignore["keys"].append(target)
+                                target = input("Enter new ID: ").lower()
+                                breakpoints[target] = creation_template
+                            elif index == 2:
+                                breakpoints[target] = creation_template
+                    with open("importignore.json","w") as f:
+                        json.dump(ignore,f)
+                    with open("breakpoints.json","w") as f:
+                        json.dump(breakpoints,f)
+                    input("\n\033[38;5;40m[ Done. ]\033[0m")
+                except requests.exceptions.RequestException as e:
+                    input("\n\033[31m[ Request has failed. ]\033[0m")
+                except KeyboardInterrupt:
+                    input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
+                    raise KeyboardInterrupt()
+                except Exception as e:
+                    input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
+            elif lm == 2:
+                try:
+                    print("\nNew UID ('0' to disable):")
+                    while True:
+                        uid = input("> ").strip()
+                        if uid.isdigit():
+                            with open(".uid","w") as f:
+                                f.write(str(uid))
+                            break
+                except:
                     continue
-                print(f"Expecting {entryindex} new entries.")
-                print("0: Ignore / 1: Change name and add / 2: Directly add")
-                for object in main:
-                    target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                    if target not in breakpoints.keys() and target not in ignore["keys"]:
-                        while True:
-                            index = input(f"{target.upper()} >> ")
-                            if index.isdigit():
-                                if int(index) <= 2 and int(index) >= 0:
-                                    index = int(index)
-                                    break
-                        if index == 0:
-                            ignore["keys"].append(target)
-                        elif index == 1:
-                            ignore["keys"].append(target)
-                            target = input("Enter new ID: ").lower()
-                            breakpoints[target] = creation_template
-                        elif index == 2:
-                            breakpoints[target] = creation_template
-                with open("importignore.json","w") as f:
-                    json.dump(ignore,f)
-                with open("breakpoints.json","w") as f:
-                    json.dump(breakpoints,f)
-                input("\n\033[38;5;40m[ Done. ]\033[0m")
-            except requests.exceptions.RequestException as e:
-                input("\n\033[31m[ Request has failed. ]\033[0m")
-            except KeyboardInterrupt:
-                input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
-                raise KeyboardInterrupt()
-            except Exception as e:
-                input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
+            elif lm == 3:
+                if uid == 0:
+                    input("Feature available once UID has been set.")
+                    continue
+                print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Get API names for current UID\n[2] - Edit Name Mapping")
+                try:
+                    lm = int(input("> "))
+                    if lm not in range(1,3):
+                        raise ValueError("Invalid Index")
+                except:
+                    continue
+                if lm == 1:
+                    api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
+                    api_chars = [x['name'].lower() for x in api_data["characters"]]
+                    print("\nCurrent keys under UID:\n")
+                    for i in api_chars:
+                        if i in breakpoints:
+                            print("\033[38;5;40mSYNCED | ", end="")
+                        elif i in api_name_mapping.values():
+                            print("\033[38;5;220mMAPPED | ", end="")
+                        else:
+                            print("\033[38;5;196mUNBOUND | ", end="")
+                        print(i)
+                    print("\n\033[38;5;240mSynced  : API matches Breakpoint Identifier.\nMapped  : Name mapping has been configured.\nUnbound : Name is not known in any way.")
+                    print("\nChanges to your characters ingame (Availability and Stats alike) will be reflected after a few minutes of delay.\033[0m")
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                if lm == 2:
+                    while True:
+                        print("\033c\033[7m Mappings                   >\033[0m\n")
+                        if len(api_name_mapping) == 0:
+                            print("None yet.")
+                        else:
+                            index = 1
+                            print("\033[38;5;240m[i] API Name --> Breakpoint Identifier\033[0m\n")
+                            for na, sy in api_name_mapping.items():
+                                print(f"INDEX {' ' if index > 9 else ''}{index} | {sy} --> {na}")
+                                index += 1
+                            print("\nControls:")
+                            print("Add/Edit : '+,APINAME,BPIDENTIFIER'")
+                            print("Delete   : 'x,INDEX'")
+                            print("\n\033[38;5;240mPress CTRL C to exit.\033[0m")
+                        try:
+                            syn = input("\n > ")
+                            if syn == "":
+                                continue
+                            if syn[0] == "+":
+                                if syn.count(",") != 2:
+                                    input("\n\033[31m[ Expected 2 commas. If any name requires a comma, replace it with <COMMA>. ]\033[0m")
+                                    continue
+                                syn = [x.strip().replace("<COMMA>",",").lower() for x in syn.split(",")[1:]]
+                                if "" in syn:
+                                    input("\n\033[31m[ One or more Arguments are empty. ]\033[0m")
+                                    continue
+                                try:
+                                    input(f"\nSet the following?:\n{syn[1]} --> {syn[0]}\nENTER: Yes / CTRL C: No")
+                                except:
+                                    continue
+                                api_name_mapping[syn[0]] = syn[1]
+                                with open("apinamemap.json","w") as f:
+                                    json.dump(api_name_mapping,f)
+                                input("\n\033[38;5;40m[ Done. ]\033[0m")
+                                continue
+                            elif syn[0] == "x":
+                                if syn.count(",") != 1:
+                                    input("\n\033[31m[ Expected 1 comma. If any name requires a comma, replace it with <COMMA>. ]\033[0m")
+                                    continue
+                                syn = syn.split(",")[1].strip().replace("<COMMA>",",").lower()
+                                if not syn.isdigit():
+                                    input("\n\033[31m[ Expected a numeric index. ]\033[0m")
+                                    continue
+                                syn = int(syn) - 1
+                                if syn < 0 or syn > len(api_name_mapping) - 1:
+                                    input("\n\033[31m[ Index is out of range ]\033[0m")
+                                    continue
+                                del api_name_mapping[list(api_name_mapping.keys())[syn]]
+                                with open("apinamemap.json","w") as f:
+                                    json.dump(api_name_mapping,f)
+                                input("\n\033[38;5;40m[ Done. ]\033[0m")
+                                continue
+                            else:
+                                input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
+                        except KeyboardInterrupt:
+                            break
+
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
