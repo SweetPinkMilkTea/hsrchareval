@@ -114,8 +114,10 @@ try:
         print("[7] - Quickscan")
         print("\033[38;5;240m[0] - Edit configuration")
         print("\n\033[38;5;240mCancel anything with CTRL C\033[0m")
-        
-        menuindex = int(input("\n>> "))
+        try:
+            menuindex = int(input("\n>> "))
+        except:
+            continue
         print()
         if menuindex == 1:
             with open("chardata.json") as f:
@@ -217,10 +219,12 @@ try:
                     input("\n\033[31m[ No teams configured yet ]\033[0m")
                     continue
                 print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
+                teams_condense = []
                 for h in range(len(teams)):
                     cumulativescore = []
                     cumulativeratio = []
                     rank_str = ""
+                    team_content = []
                     for ii in teams[sorted(list(teams.keys()))[h]]:
                         allscore = []
                         allratio = []
@@ -250,6 +254,7 @@ try:
                             else:
                                 break
                         rank_str += grade
+                        team_content.append({"name":ii,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
                     score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
                     r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                     acc = f"{r_acc:,}%"
@@ -262,6 +267,30 @@ try:
                             break
                     color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
                     print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                    teams_condense.append(team_content)
+                print("\n\033[38;5;240mEnter ID for review characters assigned to team, CTRL + C to return.\033[0m")
+                try:
+                    x = input("> ")
+                except:
+                    continue
+                if x.isdigit():
+                    if int(x) < 1 or int(x) > len(teams.keys()):
+                        input("\n\033[31m[ Not an index ]\033[0m")
+                        continue
+                else:
+                    input("\n\033[31m[ Not an index ]\033[0m")
+                    continue
+                x = int(x)-1
+                print("\n\033[7m NAME           | SCORE       | ACC      | RANK |\033[0m\n                |             |          |      |")
+                team = teams_condense[x]
+                color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
+                for character in range(4):
+                    theme = color[teams_condense[x][character]["rank"]]
+                    name = teams_condense[x][character]["name"]
+                    acc = f'{teams_condense[x][character]["ratio"]:,}%'
+                    grade = teams_condense[x][character]["rank"]
+                    score = f'{teams_condense[x][character]["score"]:,}'
+                    print(f" \033[38;5;{theme}m{name.upper().ljust(15)}\033[0m| \033[38;5;{theme}m{score.ljust(12)}\033[0m| \033[38;5;{theme}m{acc.ljust(9)}\033[0m| \033[38;5;{theme}m\033[7m {grade.ljust(3)}\033[0m |")
                 input("\n\033[38;5;240m[ <- ]\033[0m")
             except:
                 continue
@@ -493,7 +522,7 @@ try:
             try:
                 x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m").replace(",",".")
                 print("\033[0m",end="")
-                bridgedata[target][key] = int(x)
+                bridgedata[target][key] = float(x)
                 with open("bridgedata.json","w") as f:
                     json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
@@ -501,7 +530,7 @@ try:
                 input("\n\033[31m[ Error. Aborting. ]\033[0m")
                 continue
         if menuindex == 7:
-            print("\033[38;5;240m\033[1mInfo:\033[22m\nQuickscan is used for evaluating characters without saving thier state (e.g. charcters of other users).\nFor your own characters, use menu option #3 instead.\033[0m\n")
+            print("\033[38;5;240m\033[1mInfo:\033[22m\nQuickscan is used for evaluating characters without saving thier state (e.g. charcters of other users).\nFor your own characters, use menu option #3 instead.\nWarning: Bridges will not apply. A character's build quality won't be able to be fully evaluated.\033[0m\n")
             try:
                 target = input("Enter name: \033[38;5;202m").lower().strip()
             except:
@@ -714,7 +743,6 @@ try:
                                 input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
                         except KeyboardInterrupt:
                             break
-
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
