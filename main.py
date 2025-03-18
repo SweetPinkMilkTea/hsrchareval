@@ -85,7 +85,7 @@ try:
                     json.dump(breakpoints,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except requests.exceptions.RequestException as e:
-                input("\n\033[31m[ Request has failed. ]\033[0m")
+                input("\n\033[31m[ Request has failed. Are you offline? ]\033[0m")
             except KeyboardInterrupt:
                 input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
                 raise KeyboardInterrupt()
@@ -102,9 +102,20 @@ try:
                     f.write(str(uid))
                 break
 
+    try:
+        response = requests.get("https://www.prydwen.gg/star-rail/characters")
+        response.raise_for_status()
+    except:
+        isOffline = True
+    else:
+        isOffline = False
+
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
-        print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == '0' else 'ON ['+uid+']'}\n\033[0m")
+        if isOffline:
+            print("\033[38;5;240mQuick-Import: No connection\n\033[0m")
+        else:
+            print(f"\033[38;5;240mQuick-Import: {'OFF' if uid == '0' else 'ON ['+uid+']'}\n\033[0m")
         print("[1] - Lookup characters")
         print("[2] - Lookup teams")
         print("[3] - Create/Edit personal character")
@@ -338,38 +349,44 @@ try:
                 lastdata = characters[target]
                 comp_mode = True
             characters[target] = {}
-            if uid != "0":
-                api_name = api_name_mapping.get(target,target)
-                api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
-                api_chars = [x['name'].lower() for x in api_data["characters"]]
-                api_attr = {}
-                if api_name.lower() in api_chars:
-                    index = api_chars.index(api_name.lower())
-                    for i in api_data["characters"][index]["property"]:
-                        if "%" in i['base']:
-                            i['base'] = i['base'][:-1]
-                        i['base'] = float(i['base'])
-                        if i['name'] == 'Energy Regeneration Rate':
-                            api_attr['energy regen'] = i['base']
-                        elif i['name'] == 'Effect Hit Rate':
-                            api_attr['effect hit'] = i['base']
-                        else:
-                            api_attr[i['name'].lower()] = i['base']
-                        if i['name'] in ['Energy Regeneration Rate']:
-                            api_attr['energy regen'] += 100
-                        if not i['addition'] is None:
-                            api_attr[i['name'].lower()] += float(i['addition'])
-                    if "energy regen" not in api_attr:
-                        api_attr['energy regen'] = 100
-                    if "break effect" not in api_attr:
-                        api_attr['break effect'] = 0
-                    if "effect hit" not in api_attr:
-                        api_attr['effect hit'] = 0
-                    if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() == "n":
-                        api_attr = {}
+            try:
+                if uid != "0":
+                    api_name = api_name_mapping.get(target,target)
+                    response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1")
+                    response.raise_for_status()
+                    api_data = response.json()
+                    api_chars = [x['name'].lower() for x in api_data["characters"]]
+                    api_attr = {}
+                    if api_name.lower() in api_chars:
+                        index = api_chars.index(api_name.lower())
+                        for i in api_data["characters"][index]["property"]:
+                            if "%" in i['base']:
+                                i['base'] = i['base'][:-1]
+                            i['base'] = float(i['base'])
+                            if i['name'] == 'Energy Regeneration Rate':
+                                api_attr['energy regen'] = i['base']
+                            elif i['name'] == 'Effect Hit Rate':
+                                api_attr['effect hit'] = i['base']
+                            else:
+                                api_attr[i['name'].lower()] = i['base']
+                            if i['name'] in ['Energy Regeneration Rate']:
+                                api_attr['energy regen'] += 100
+                            if not i['addition'] is None:
+                                api_attr[i['name'].lower()] += float(i['addition'])
+                        if "energy regen" not in api_attr:
+                            api_attr['energy regen'] = 100
+                        if "break effect" not in api_attr:
+                            api_attr['break effect'] = 0
+                        if "effect hit" not in api_attr:
+                            api_attr['effect hit'] = 0
+                        if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() != "y":
+                            api_attr = {}
+                    else:
+                        print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
                 else:
-                    print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
-            else:
+                    api_attr = {}
+            except requests.exceptions.RequestException:
+                print("Couldn't load from profile because of network issues. Continue entering manually.\n")
                 api_attr = {}
             print("\033[0m", end="")
             old_temp = characters[target]
@@ -609,6 +626,7 @@ try:
                     creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
                     response = requests.get("https://www.prydwen.gg/star-rail/characters")
                     response.raise_for_status()
+                    isOffline = False
                     main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
                     entryindex = len(main)
                     for object in main:
@@ -672,8 +690,18 @@ try:
                 except:
                     continue
                 if lm == 1:
-                    api_data = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1").json()
-                    api_chars = [x['name'].lower() for x in api_data["characters"]]
+                    try:
+                        response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1")
+                        response.raise_for_status()
+                        api_data = api_data.json()
+                        api_chars = [x['name'].lower() for x in api_data["characters"]]
+                    except KeyboardInterrupt:
+                        continue
+                    except requests.exceptions.RequestException as e:
+                        input("\n\033[31m[ Connection failed. ]\033[0m")
+                    except:
+                        input("\n\033[31m[ An error occured. ]\033[0m")
+                    isOffline = False
                     print("\nCurrent keys under UID:\n")
                     for i in api_chars:
                         if i in breakpoints:
@@ -690,7 +718,7 @@ try:
                     while True:
                         print("\033c\033[7m Mappings                   >\033[0m\n")
                         if len(api_name_mapping) == 0:
-                            print("None yet.")
+                            print("\033[38;5;240mNothing here yet.\033[0m\n")
                         else:
                             index = 1
                             print("\033[38;5;240m[i] API Name --> Breakpoint Identifier\033[0m\n")
