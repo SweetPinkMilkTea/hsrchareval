@@ -1,3 +1,6 @@
+import re
+
+
 try:
     import json, time, os, traceback, requests
     from bs4 import BeautifulSoup
@@ -181,12 +184,13 @@ try:
                 input("\n\033[31m[ Not an index ]\033[0m")
                 continue
             x = int(x)-1
-            print(f"\n\033[3;38;5;240m{sorted(list(characters.keys()))[x].upper()}\n\033[0m\033[7m ATTR         | COMP                   | SCORE   |\033[0m\n              |                        |         |")
+            print(f"\n\033[3;38;5;240m{sorted(list(characters.keys()))[x].upper()}\n\033[0m\033[7m ATTR         | COMP                        | SCORE   |\033[0m\n              |                             |         |")
             allscore = []
             allratio = []
             for i in characters[sorted(list(characters.keys()))[x]]:
                 if i != "updated":
-                    value1 = float(characters[sorted(list(characters.keys()))[x]][i]) + bridgedata[sorted(list(characters.keys()))[x]].get(i,0)
+                    bridgevalue = bridgedata[sorted(list(characters.keys()))[x]].get(i,0)
+                    value1 = float(characters[sorted(list(characters.keys()))[x]][i]) + bridgevalue
                     value2 = float(breakpoints[sorted(list(characters.keys()))[x]][i])
                     value1 = int(value1) if value1.is_integer() else value1
                     value2 = int(value2) if value2.is_integer() else value2
@@ -215,7 +219,13 @@ try:
                         col_index += 1
                     if value1 < (value2 - value2/5):
                         col_index += 1
-                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m / {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score.ljust(8)}|")
+                    if bridgevalue == 0:
+                        display = f"{xvalue1}\033[38;5;240m / {xvalue2}"
+                    else:
+                        display = f"{value1 - bridgevalue:,} + {bridgevalue:,}\033[38;5;240m / {xvalue2}"
+                    ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
+                    vd = len(ansi_escape.sub('', display))
+                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score.ljust(8)}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
