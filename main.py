@@ -106,6 +106,7 @@ try:
                 break
 
     try:
+        print("Connection test...\n\033[38;5;240mSkip it with CTRL + C\033[0m")
         response = requests.get("https://www.prydwen.gg/star-rail/characters")
         response.raise_for_status()
     except:
@@ -219,16 +220,20 @@ try:
                         col_index += 1
                     if value1 < (value2 - value2/5):
                         col_index += 1
+                    usesBridge = False
                     if bridgevalue == 0:
                         display = f"{xvalue1}\033[38;5;240m / {xvalue2}"
                     else:
                         display = f"{value1 - bridgevalue:,} + {bridgevalue:,}\033[38;5;240m / {xvalue2}"
+                        usesBridge = True
                     ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
                     vd = len(ansi_escape.sub('', display))
                     print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score.ljust(8)}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            if usesBridge:
+                print("\n[i] Bridges for this character are set and visible above.")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
