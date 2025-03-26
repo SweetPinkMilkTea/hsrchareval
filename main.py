@@ -224,7 +224,7 @@ try:
                     if bridgevalue == 0:
                         display = f"{xvalue1}\033[38;5;240m / {xvalue2}"
                     else:
-                        display = f"{value1 - bridgevalue:,} + {bridgevalue:,}\033[38;5;240m / {xvalue2}"
+                        display = f"{round(value1 - bridgevalue,1):,} + {round(bridgevalue,1):,}\033[38;5;240m / {xvalue2}"
                         usesBridge = True
                     ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
                     vd = len(ansi_escape.sub('', display))
