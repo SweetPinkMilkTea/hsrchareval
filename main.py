@@ -160,7 +160,11 @@ try:
                             score += abs(value2 - value1)
                         allscore.append(score)
                         allratio.append(ratio)
-                score = f"{int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)):,}"
+                score = int((sum(allscore) + min(allscore)*5)/(len(allscore)+5))
+                if score > 100000:
+                    score = f"X-{score-100000:,}"
+                else:
+                    score = f"{score:,}"
                 r_acc = round(sum(allratio*100)/len(allratio),2)
                 acc = f"{r_acc:,}%"
                 grade = "F"
@@ -171,7 +175,8 @@ try:
                     else:
                         break
                 color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                highlight = "7;" if score[0] == "X" else ""
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m| \033[{highlight}38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
@@ -207,7 +212,10 @@ try:
                     allratio.append(ratio)
                     xvalue1 = f"{value1:,}"
                     xvalue2 = f"{value2:,}"
-                    score = f"{int(score):,}"
+                    if score <= 100000:
+                        score = f"{int(score):,}"
+                    else:
+                        score = f"\033[7;38;5;171mX-{int(score)-100000:,}\033[0m"
                     #196 red
                     #202 orange
                     #220 yellow
@@ -228,10 +236,14 @@ try:
                         usesBridge = True
                     ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
                     vd = len(ansi_escape.sub('', display))
-                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score.ljust(8)}|")
+                    vd2 = len(ansi_escape.sub('', score))
+                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(8-vd2)}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
-            print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            if score >= 100000:
+                print(f"Total scoring: \033[7;38;5;171mX-{int(score)-100000:,}\033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            else:
+                print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             if usesBridge:
                 print("\n[i] Bridges for this character are set and visible above.")
             input("\n\033[38;5;240m[ <- ]\033[0m")
@@ -281,7 +293,11 @@ try:
                                 break
                         rank_str += grade
                         team_content.append({"name":ii,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
-                    score = f"{int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5)):,}"
+                    score = int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5))
+                    if score > 100000:
+                        score = f"X-{score-100000:,}"
+                    else:
+                        score = f"{score:,}"
                     r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                     acc = f"{r_acc:,}%"
                     grade = "F"
@@ -315,7 +331,11 @@ try:
                     name = teams_condense[x][character]["name"]
                     acc = f'{teams_condense[x][character]["ratio"]:,}%'
                     grade = teams_condense[x][character]["rank"]
-                    score = f'{teams_condense[x][character]["score"]:,}'
+                    score = teams_condense[x][character]["score"]
+                    if score >= 100000:
+                        score = f"X-{score-100000:,}"
+                    else:
+                        score = f"{score:,}"
                     print(f" \033[38;5;{theme}m{name.upper().ljust(15)}\033[0m| \033[38;5;{theme}m{score.ljust(12)}\033[0m| \033[38;5;{theme}m{acc.ljust(9)}\033[0m| \033[38;5;{theme}m\033[7m {grade.ljust(3)}\033[0m |")
                 input("\n\033[38;5;240m[ <- ]\033[0m")
             except:
@@ -608,7 +628,10 @@ try:
                 allratio.append(ratio)
                 xvalue1 = f"{value1:,}"
                 xvalue2 = f"{value2:,}"
-                score = f"{int(score):,}"
+                if score < 100000:
+                    score = f"{int(score):,}"
+                else:
+                    score = f"X-{int(score)-100000:,}"
                 #196 red
                 #202 orange
                 #220 yellow
@@ -621,10 +644,13 @@ try:
                     col_index += 1
                 if value1 < (value2 - value2/5):
                     col_index += 1
-                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m / {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score.ljust(8)}|")
+                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m / {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
-            print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            if score >= 100000:
+                print(f"Total scoring: \033[7;38;5;171mX-{int(score)-100000:,}\033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+            else:
+                print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
             print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n")
@@ -708,13 +734,15 @@ try:
                     try:
                         response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1")
                         response.raise_for_status()
-                        api_data = api_data.json()
+                        api_data = response.json()
                         api_chars = [x['name'].lower() for x in api_data["characters"]]
                     except KeyboardInterrupt:
                         continue
                     except requests.exceptions.RequestException as e:
                         input("\n\033[31m[ Connection failed. ]\033[0m")
-                    except:
+                        continue
+                    except Exception as e:
+                        #print(f"\033[38;5;240m{traceback.format_exc()}\033[0m")
                         input("\n\033[31m[ An error occured. ]\033[0m")
                     isOffline = False
                     print("\nCurrent keys under UID:\n")
