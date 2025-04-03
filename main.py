@@ -201,7 +201,9 @@ try:
                         break
                 color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
                 highlight = "7;" if score[0] == "X" else ""
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m| \033[{highlight}38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                sp = ["",""]
+                sp[1 if score[0] == "X" else 0] = " "
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
@@ -238,7 +240,7 @@ try:
                     if score <= 100000:
                         score = f"{int(score):,}"
                     else:
-                        score = f"\033[7;38;5;171mX-{int(score)-100000:,}\033[0m"
+                        score = f"\033[7;38;5;171m X-{int(score)-100000:,}"
                     #196 red
                     #202 orange
                     #220 yellow
@@ -260,11 +262,11 @@ try:
                     ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
                     vd = len(ansi_escape.sub('', display))
                     vd2 = len(ansi_escape.sub('', score))
-                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(8-vd2)}|")
+                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(7-vd2)}\033[0m |")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             if score >= 100000:
-                print(f"Total scoring: \033[7;38;5;171mX-{int(score)-100000:,}\033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+                print(f"Total scoring: \033[7;38;5;171m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             else:
                 print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             if usesBridge:
@@ -669,7 +671,7 @@ try:
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             if score >= 100000:
-                print(f"Total scoring: \033[7;38;5;171mX-{int(score)-100000:,}\033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+                print(f"Total scoring: \033[7;38;5;171m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             else:
                 print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
