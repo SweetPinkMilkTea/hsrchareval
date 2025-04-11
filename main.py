@@ -1,28 +1,32 @@
 import re
 
-def attributeScore(key, metric, target):
-    # Setup of lower bound (Score 0)
-    lower = target / 2
-    if key == "spd":
-        lower = (95 + target) / 2
-    if key == "energy regen":
-        lower = (100 + target) / 2
-    # Score calculation
-    if metric < target:
-        # Get score for non fulfilled target
-        score = (metric - lower) / (target - lower) * 100000
+def attributeScore(key, metric, target, isInverse):
+    # Logic on Inverse
+    if isInverse:
+        score = 100000 if metric < target else 0
     else:
-        # Calculated bonus if score exceeds target
-        diff = metric - target
-        score = 100000
-        if key in ["hp","atk","def"]:
-            score += int(diff / 10)
-        if key in ["crit rate"]:
-            score += int(diff)
-        if key in ["crit dmg","break effect","effect hit"]:
-            score += int(diff / 2)
-        if key in ["energy regen", "spd"]:
-            score += int(diff * 2)
+        # Setup of lower bound (Score 0)
+        lower = target / 2
+        if key == "spd" and target > 95:
+            lower = (95 + target) / 2
+        if key == "energy regen":
+            lower = (100 + target) / 2
+        # Score calculation
+        if metric < target:
+            # Get score for non fulfilled target
+            score = (metric - lower) / (target - lower) * 100000
+        else:
+            # Calculated bonus if score exceeds target
+            diff = metric - target
+            score = 100000
+            if key in ["hp","atk","def"]:
+                score += int(diff / 10)
+            if key in ["crit rate"]:
+                score += int(diff)
+            if key in ["crit dmg","break effect","effect hit"]:
+                score += int(diff / 2)
+            if key in ["energy regen", "spd"]:
+                score += int(diff * 2)
     if score < 0:
         score = 0
     return score
@@ -81,7 +85,7 @@ try:
             try:
                 with open("importignore.json") as f:
                     ignore = json.load(f)
-                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
+                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
                 response = requests.get("https://www.prydwen.gg/star-rail/characters")
                 response.raise_for_status()
                 main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
@@ -171,6 +175,7 @@ try:
             for h in range(len(characters)):
                 allscore = []
                 allratio = []
+                inverse = breakpoints[sorted(list(characters.keys()))[h]]["inverse"]
                 for i in characters[sorted(list(characters.keys()))[h]]:
                     if i != "updated":
                         value1 = float(characters[sorted(list(characters.keys()))[h]][i]) + bridgedata[sorted(list(characters.keys()))[h]].get(i,0)
@@ -182,7 +187,9 @@ try:
                             ratio = 0
                         if ratio > 1:
                             ratio = 1
-                        score = attributeScore(i, value1, value2)
+                        score = attributeScore(i, value1, value2, i in inverse)
+                        if score >= 100000:
+                            ratio = 1
                         allscore.append(score)
                         allratio.append(ratio)
                 score = int((sum(allscore) + min(allscore)*5)/(len(allscore)+5))
@@ -220,6 +227,7 @@ try:
             print(f"\n\033[3;38;5;240m{sorted(list(characters.keys()))[x].upper()}\n\033[0m\033[7m ATTR         | COMP                        | SCORE   |\033[0m\n              |                             |         |")
             allscore = []
             allratio = []
+            inverse = breakpoints[sorted(list(characters.keys()))[x]]["inverse"]
             for i in characters[sorted(list(characters.keys()))[x]]:
                 if i != "updated":
                     bridgevalue = bridgedata[sorted(list(characters.keys()))[x]].get(i,0)
@@ -232,7 +240,9 @@ try:
                         ratio = 0
                     if ratio > 1:
                         ratio = 1
-                    score = attributeScore(i, value1, value2)
+                    score = attributeScore(i, value1, value2, i in inverse)
+                    if score >= 100000:
+                        ratio = 1
                     allscore.append(score)
                     allratio.append(ratio)
                     xvalue1 = f"{value1:,}"
@@ -247,17 +257,23 @@ try:
                     #40 green
                     colorcode = [40,220,202,196]
                     col_index = 0
-                    if value1 < value2:
-                        col_index += 1
-                    if value1 < (value2 - value2/10):
-                        col_index += 1
-                    if value1 < (value2 - value2/5):
-                        col_index += 1
+                    if i in inverse:
+                        comp_symbol = "<"
+                        if value1 > value2:
+                            col_index += 3
+                    else:
+                        comp_symbol = "/"
+                        if value1 < value2:
+                            col_index += 1
+                        if value1 < (value2 - value2/10):
+                            col_index += 1
+                        if value1 < (value2 - value2/5):
+                            col_index += 1
                     usesBridge = False
                     if bridgevalue == 0:
-                        display = f"{xvalue1}\033[38;5;240m / {xvalue2}"
+                        display = f"{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2}"
                     else:
-                        display = f"{round(value1 - bridgevalue,1):,} + {round(bridgevalue,1):,}\033[38;5;240m / {xvalue2}"
+                        display = f"{round(value1 - bridgevalue,1):,} + {round(bridgevalue,1):,}\033[38;5;240m {comp_symbol} {xvalue2}"
                         usesBridge = True
                     ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
                     vd = len(ansi_escape.sub('', display))
@@ -291,6 +307,7 @@ try:
                     for ii in teams[sorted(list(teams.keys()))[h]]:
                         allscore = []
                         allratio = []
+                        inverse = breakpoints[ii]["inverse"]
                         for i in characters[ii]:
                             if i != "updated":
                                 value1 = float(characters[ii][i]) + bridgedata[ii].get(i,0)
@@ -302,9 +319,9 @@ try:
                                     ratio = 0
                                 if ratio > 1:
                                     ratio = 1
-                                score = attributeScore(i, value1, value2)
-                                if ratio == 1:
-                                    score += abs(value2 - value1)
+                                score = attributeScore(i, value1, value2, i in inverse)
+                                if score >= 100000:
+                                    ratio = 1
                                 allscore.append(score)
                                 allratio.append(ratio)
                         cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
@@ -378,7 +395,7 @@ try:
             print("\033cSelect character to edit state of:\n")
             nobp = []
             for i in range(len(breakpoints.keys())):
-                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9:
+                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9 + [[]]:
                     if lm == 1:
                         print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
                         nobp.append(i+1)
@@ -556,15 +573,26 @@ try:
                     continue
             prev_breakpoints = breakpoints
             breakpoints[target] = {}
+            attributes = ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
             try:
-                for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                    while True:
-                        x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
-                        if "," not in x:
-                            break
+                for i in attributes:
+                    x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                    x.replace(",",".")
                     print("\033[0m",end="")
                     breakpoints[target][i] = float(x)
+                print("\nEnter attributes to mark as \033[1minverse\033[0m. Inverse describes attributes that should \033[1mnot be exceeded\033[0m.")
+                x = input(f"Enter attributes (Seperate multiple with comma or leave blank): \033[38;5;202m")
+                if x != "":
+                    x = x.lower().split(",")
+                    xnot = [item.strip() for item in x if item.lower() not in attributes]
+                    xs = [item.strip() for item in x if item.lower() in attributes]
+                    if len(xnot) == 0:
+                        breakpoints[target]["inverse"] = xs
+                    else:
+                        raise ValueError("Invalid attributes for Inverse supplied.")
+                else:
+                    breakpoints[target]["inverse"] = []
                 with open("breakpoints.json","w") as f:
                     json.dump(breakpoints,f)
                 with open("bridgedata.json") as f:
@@ -573,6 +601,10 @@ try:
                     if i not in bridgedata:
                         bridgedata[i] = {}
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
+            except ValueError as e:
+                breakpoints = prev_breakpoints
+                input(f"\n\033[31m[ {str(e)} ]\033[0m")
+                continue
             except:
                 breakpoints = prev_breakpoints
                 input("\n\033[31m[ Aborted. Reverting. ]\033[0m")
@@ -618,7 +650,7 @@ try:
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
-            if list(breakpoints[target].values()) == [-1] * 9:
+            if list(breakpoints[target].values()) == [-1] * 9 + [[]]:
                 input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
             q_char = {}
@@ -636,6 +668,7 @@ try:
             print()
             allscore = []
             allratio = []
+            inverse = breakpoints[target]["inverse"]
             for i in q_char:
                 value1 = float(q_char[i])
                 value2 = float(breakpoints[target][i])
@@ -646,7 +679,9 @@ try:
                     ratio = 0
                 if ratio > 1:
                     ratio = 1
-                score = attributeScore(i, value1, value2)
+                score = attributeScore(i, value1, value2, i in inverse)
+                if score >= 100000:
+                    ratio = 1
                 allscore.append(score)
                 allratio.append(ratio)
                 xvalue1 = f"{value1:,}"
@@ -661,13 +696,19 @@ try:
                 #40 green
                 colorcode = [40,220,202,196]
                 col_index = 0
-                if value1 < value2:
-                    col_index += 1
-                if value1 < (value2 - value2/10):
-                    col_index += 1
-                if value1 < (value2 - value2/5):
-                    col_index += 1
-                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m / {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
+                if i in inverse:
+                    comp_symbol = "<"
+                    if value1 > value2:
+                        col_index += 3
+                else:
+                    comp_symbol = "/"
+                    if value1 < value2:
+                        col_index += 1
+                    if value1 < (value2 - value2/10):
+                        col_index += 1
+                    if value1 < (value2 - value2/5):
+                        col_index += 1
+                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             if score >= 100000:
