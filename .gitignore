@@ -2,3 +2,8 @@
 *.json
 .uid
 *dev*
+
+
+build
+dist
+main.spec
