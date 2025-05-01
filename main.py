@@ -1,4 +1,19 @@
+import platform
 import re
+import json, time, os, traceback
+from pathlib import Path
+
+from bs4 import BeautifulSoup
+import requests
+
+
+def get_app_data_path(app_name="HSRCharEval"):
+    if platform.system() == "Windows":
+        return Path(os.getenv('LOCALAPPDATA')) / app_name
+    elif platform.system() == "Darwin":  # macOS
+        return Path.home() / "Library" / "Application Support" / app_name
+    else:  # Linux
+        return Path.home() / f".{app_name.lower()}"
 
 def attributeScore(key, metric, target, isInverse):
     # Logic on Inverse
@@ -31,47 +46,56 @@ def attributeScore(key, metric, target, isInverse):
         score = 0
     return score
 
+APP_DATA_DIR = get_app_data_path()
+APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Paths
+class PATHS:
+    uid = APP_DATA_DIR / ".uid"
+    characters = APP_DATA_DIR / "chardata.json"
+    breakpoints = APP_DATA_DIR / "breakpoints.json"
+    teams = APP_DATA_DIR / "teamdata.json"
+    bridgedata = APP_DATA_DIR / "bridgedata.json"
+    importignore = APP_DATA_DIR / "importignore.json"
+    api_name_map = APP_DATA_DIR / "apinamemap.json"
 
 try:
-    import json, time, os, traceback, requests
-    from bs4 import BeautifulSoup
-    # input("\n\033[38;5;240m[ <- ]\033[0m")
-
-    if ".uid" not in os.listdir():
-        with open(".uid","w") as f:
+    # Setup
+    if not PATHS.uid.exists():
+        with open(PATHS.uid,"w") as f:
             f.write("0")
-    if "chardata.json" not in os.listdir():
-        with open("chardata.json","w") as f:
+    if not PATHS.characters.exists():
+        with open(PATHS.characters,"w") as f:
             json.dump({},f)
-    if "breakpoints.json" not in os.listdir():
-        with open("breakpoints.json","w") as f:
+    if not PATHS.breakpoints.exists():
+        with open(PATHS.breakpoints,"w") as f:
             json.dump({},f)
-    if "teamdata.json" not in os.listdir():
-        with open("teamdata.json","w") as f:
+    if not PATHS.teams.exists():
+        with open(PATHS.teams,"w") as f:
             json.dump({},f)
-    if "bridgedata.json" not in os.listdir():
-        with open("bridgedata.json","w") as f:
+    if not PATHS.bridgedata.exists():
+        with open(PATHS.bridgedata,"w") as f:
             json.dump({},f)
-    if "importignore.json" not in os.listdir():
-        with open("importignore.json","w") as f:
+    if not PATHS.importignore.exists():
+        with open(PATHS.importignore,"w") as f:
             json.dump({"keys":[]},f)
-    if "apinamemap.json" not in os.listdir():
-        with open("apinamemap.json","w") as f:
+    if not PATHS.api_name_map.exists():
+        with open(PATHS.api_name_map,"w") as f:
             json.dump({},f)
 
-    with open("breakpoints.json") as f:
+    with open(PATHS.breakpoints) as f:
         breakpoints = json.load(f)
 
-    with open("bridgedata.json") as f:
+    with open(PATHS.bridgedata) as f:
         bridgedata = json.load(f)
     for i in breakpoints:
         if i not in bridgedata:
             bridgedata[i] = {}
 
-    with open(".uid") as f:
+    with open(PATHS.uid) as f:
         uid = f.read()
         
-    with open("apinamemap.json") as f:
+    with open(PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
 
     if len(breakpoints) == 0:
@@ -132,7 +156,7 @@ try:
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
-                with open(".uid","w") as f:
+                with open(PATHS.uid,"w") as f:
                     f.write(str(uid))
                 break
 
@@ -166,7 +190,7 @@ try:
             continue
         print()
         if menuindex == 1:
-            with open("chardata.json") as f:
+            with open(PATHS.chardata) as f:
                 characters = json.load(f)
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
@@ -290,9 +314,9 @@ try:
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
-                with open("chardata.json") as f:
+                with open(PATHS.characters) as f:
                     characters = json.load(f)
-                with open("teamdata.json") as f:
+                with open(PATHS.teams) as f:
                     teams = json.load(f)
                 if len(teams) == 0:
                     input("\n\033[31m[ No teams configured yet ]\033[0m")
@@ -383,7 +407,7 @@ try:
             except:
                 continue
         if menuindex == 3:
-            with open("chardata.json") as f:
+            with open(PATHS.characters) as f:
                 characters = json.load(f)
             print("\033c\033[7m Select List Mode                 >\033[0m\n\n[1] - All\n[2] - Only already set")
             try:
@@ -499,13 +523,13 @@ try:
                 characters[target] = old_temp
                 continue
             characters[target]["updated"] = int(time.time())
-            with open("chardata.json","w") as f:
+            with open(PATHS.characters,"w") as f:
                 json.dump(characters,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 4:
-            with open("teamdata.json") as f:
+            with open(PATHS.teams) as f:
                 teams = json.load(f)
-            with open("chardata.json") as f:
+            with open(PATHS.characters) as f:
                 characters = json.load(f)
             if len(teams) == 0:
                 print("\n\033[38;5;240m[ No teams ]\033[0m")
@@ -551,7 +575,7 @@ try:
             if not team_ok:
                 continue
             teams[target] = char_target
-            with open("teamdata.json","w") as f:
+            with open(PATHS.teams,"w") as f:
                 json.dump(teams,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 5:
@@ -593,9 +617,9 @@ try:
                         raise ValueError("Invalid attributes for Inverse supplied.")
                 else:
                     breakpoints[target]["inverse"] = []
-                with open("breakpoints.json","w") as f:
+                with open(PATHS.breakpoints,"w") as f:
                     json.dump(breakpoints,f)
-                with open("bridgedata.json") as f:
+                with open(PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
                 for i in breakpoints:
                     if i not in bridgedata:
@@ -617,7 +641,7 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            with open("breakpoints.json") as f:
+            with open(PATHS.breakpoints) as f:
                 breakpoints = json.load(f)
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
@@ -632,7 +656,7 @@ try:
                 x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m").replace(",",".")
                 print("\033[0m",end="")
                 bridgedata[target][key] = float(x)
-                with open("bridgedata.json","w") as f:
+                with open(PATHS.bridgedata,"w") as f:
                     json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except:
@@ -645,7 +669,7 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            with open("breakpoints.json") as f:
+            with open(PATHS.breakpoints) as f:
                 breakpoints = json.load(f)
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
@@ -726,7 +750,7 @@ try:
                 continue
             if lm == 1:
                 try:
-                    with open("importignore.json") as f:
+                    with open(PATHS.importignore) as f:
                         ignore = json.load(f)
                     creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1}
                     response = requests.get("https://www.prydwen.gg/star-rail/characters")
@@ -757,12 +781,14 @@ try:
                             elif index == 1:
                                 ignore["keys"].append(target)
                                 target = input("Enter new ID: ").lower()
+                                if target in breakpoints:
+                                    input("\033[38;5;202mWARNING: New ID would overwrite a breakpoint entry with same name!\nContinue with ENTER, reset and abort with CTRL C.\033[0m")
                                 breakpoints[target] = creation_template
                             elif index == 2:
                                 breakpoints[target] = creation_template
-                    with open("importignore.json","w") as f:
+                    with open(PATHS.importignore,"w") as f:
                         json.dump(ignore,f)
-                    with open("breakpoints.json","w") as f:
+                    with open(PATHS.breakpoints,"w") as f:
                         json.dump(breakpoints,f)
                     input("\n\033[38;5;40m[ Done. ]\033[0m")
                 except requests.exceptions.RequestException as e:
@@ -778,7 +804,7 @@ try:
                     while True:
                         uid = input("> ").strip()
                         if uid.isdigit():
-                            with open(".uid","w") as f:
+                            with open(PATHS.uid,"w") as f:
                                 f.write(str(uid))
                             break
                 except:
@@ -853,7 +879,7 @@ try:
                                 except:
                                     continue
                                 api_name_mapping[syn[0]] = syn[1]
-                                with open("apinamemap.json","w") as f:
+                                with open(PATHS.api_name_map,"w") as f:
                                     json.dump(api_name_mapping,f)
                                 input("\n\033[38;5;40m[ Done. ]\033[0m")
                                 continue
@@ -870,7 +896,7 @@ try:
                                     input("\n\033[31m[ Index is out of range ]\033[0m")
                                     continue
                                 del api_name_mapping[list(api_name_mapping.keys())[syn]]
-                                with open("apinamemap.json","w") as f:
+                                with open(PATHS.api_name_map,"w") as f:
                                     json.dump(api_name_mapping,f)
                                 input("\n\033[38;5;40m[ Done. ]\033[0m")
                                 continue
