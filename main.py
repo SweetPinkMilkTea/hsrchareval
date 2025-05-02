@@ -190,7 +190,7 @@ try:
             continue
         print()
         if menuindex == 1:
-            with open(PATHS.chardata) as f:
+            with open(PATHS.characters) as f:
                 characters = json.load(f)
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
