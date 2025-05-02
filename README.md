@@ -31,6 +31,8 @@ Head to the releases and choose the version you want to use, ideally the latest,
 
 Once your download concludes you can run the `.exe` anywhere you want.
 
+SmartScreen will very likely warn of an unrecognized application, however you can choose to run the `.exe` anyway.
+
 ## Usage
 
 ### Guide
@@ -73,6 +75,10 @@ Either create or update a character you have. If you have set an UID, importing 
 
 You cannot create a character if no breakpoints have been recorded.
 
+> [!NOTE]
+> Importing a character from a UID is only possible if it's showcased under "Starfaring Companions" (not Supporting Units) and it's API name matches the respective breakpoint name.
+> Should these mismatch, head to the config menu to set up a mapping.
+
 #### 4 | Create/Edit teams
 
 Either create or update a team. A team must be named and consist of 4 characters.
@@ -97,7 +103,7 @@ Example:
 Acherons E1 increases her Crit Rate by 18% when attacking debuffed enemies. This is not reflected in her stats, as this effect is conditional.
 
 > [!NOTE]
-> Don't overuse bridges for things like other characters or hypothetical scenarios.
+> Don't overuse them. Scenarios like other character's buffs or stage effects don't warrant bridges.
 
 #### 7 | Quickscan
 
