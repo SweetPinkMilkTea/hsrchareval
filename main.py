@@ -85,6 +85,9 @@ try:
 
     with open(PATHS.breakpoints) as f:
         breakpoints = json.load(f)
+        for i in breakpoints:
+            if not "inverse" in breakpoints[i].keys():
+                breakpoints[i]["inverse"] = []
 
     with open(PATHS.bridgedata) as f:
         bridgedata = json.load(f)
