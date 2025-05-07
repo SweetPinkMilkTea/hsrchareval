@@ -198,7 +198,8 @@ try:
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
-            print("\033[7m #   | NAME           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
+            namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
+            print(f"\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
             for h in range(len(characters)):
                 allscore = []
                 allratio = []
@@ -237,7 +238,7 @@ try:
                 highlight = "7;" if score[0] == "X" else ""
                 sp = ["",""]
                 sp[1 if score[0] == "X" else 0] = " "
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(15)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
@@ -324,6 +325,7 @@ try:
                 if len(teams) == 0:
                     input("\n\033[31m[ No teams configured yet ]\033[0m")
                     continue
+                namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
                 print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
                 teams_condense = []
                 for h in range(len(teams)):
@@ -392,7 +394,7 @@ try:
                     input("\n\033[31m[ Not an index ]\033[0m")
                     continue
                 x = int(x)-1
-                print("\n\033[7m NAME           | SCORE       | ACC      | RANK |\033[0m\n                |             |          |      |")
+                print(f"\n\033[7m NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n {namespacing*' '}|             |          |      |")
                 team = teams_condense[x]
                 color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
                 for character in range(4):
@@ -405,7 +407,7 @@ try:
                         score = f"X-{score-100000:,}"
                     else:
                         score = f"{score:,}"
-                    print(f" \033[38;5;{theme}m{name.upper().ljust(15)}\033[0m| \033[38;5;{theme}m{score.ljust(12)}\033[0m| \033[38;5;{theme}m{acc.ljust(9)}\033[0m| \033[38;5;{theme}m\033[7m {grade.ljust(3)}\033[0m |")
+                    print(f" \033[38;5;{theme}m{name.upper().ljust(namespacing)}\033[0m| \033[38;5;{theme}m{score.ljust(12)}\033[0m| \033[38;5;{theme}m{acc.ljust(9)}\033[0m| \033[38;5;{theme}m\033[7m {grade.ljust(3)}\033[0m |")
                 input("\n\033[38;5;240m[ <- ]\033[0m")
             except:
                 continue
