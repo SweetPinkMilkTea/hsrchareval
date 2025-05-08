@@ -2,6 +2,7 @@ import platform
 import re
 import json, time, os, traceback
 from pathlib import Path
+from copy import deepcopy as dcp
 
 from bs4 import BeautifulSoup
 import requests
@@ -605,7 +606,7 @@ try:
                     input("\n\033[38;5;202m[ Creating a new character entry. Enter: Continue / CTRL+C: Cancel. ]\033[0m")
                 except:
                     continue
-            prev_breakpoints = breakpoints
+            prev_breakpoints = dcp(breakpoints)
             breakpoints[target] = {}
             attributes = ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
@@ -627,13 +628,23 @@ try:
                         raise ValueError("Invalid attributes for Inverse supplied.")
                 else:
                     breakpoints[target]["inverse"] = []
-                with open(PATHS.breakpoints,"w") as f:
-                    json.dump(breakpoints,f)
                 with open(PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
                 for i in breakpoints:
                     if i not in bridgedata:
                         bridgedata[i] = {}
+                
+                if [key for key, value in breakpoints[target].items() if value == -1 and key != "inverse"] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key != "inverse"]:
+                    with open(PATHS.characters,"r") as f:
+                        characters = json.load(f)
+                    print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
+                    del characters[target]
+                    with open(PATHS.characters,"w") as f:
+                        json.dump(characters,f)
+                with open(PATHS.breakpoints,"w") as f:
+                    json.dump(breakpoints,f)
+                with open(PATHS.bridgedata,"w") as f:
+                    json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except ValueError as e:
                 breakpoints = prev_breakpoints
