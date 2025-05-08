@@ -110,7 +110,7 @@ try:
                 break
         if index == "1":
             try:
-                with open("importignore.json") as f:
+                with open(PATHS.importignore) as f:
                     ignore = json.load(f)
                 creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
                 response = requests.get("https://www.prydwen.gg/star-rail/characters")
