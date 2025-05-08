@@ -496,6 +496,7 @@ try:
                 api_attr = {}
             print("\033[0m", end="")
             old_temp = characters[target]
+            characters[target] = {}
             try:
                 for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
                     if breakpoints[target][i] != -1:
@@ -524,7 +525,11 @@ try:
                         else:
                             print("\033[0m",end="")
                         characters[target][i] = x
+            except KeyboardInterrupt:
+                characters[target] = old_temp
+                continue
             except:
+                input("\n\033[31m[ An Error occured and character data was reverted. ]\033[0m")
                 characters[target] = old_temp
                 continue
             characters[target]["updated"] = int(time.time())
@@ -634,7 +639,7 @@ try:
                 breakpoints = prev_breakpoints
                 input(f"\n\033[31m[ {str(e)} ]\033[0m")
                 continue
-            except:
+            except KeyboardInterrupt:
                 breakpoints = prev_breakpoints
                 input("\n\033[31m[ Aborted. Reverting. ]\033[0m")
                 continue
