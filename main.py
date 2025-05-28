@@ -141,9 +141,9 @@ try:
                             breakpoints[target] = creation_template
                         elif index == 2:
                             breakpoints[target] = creation_template
-                with open("importignore.json","w") as f:
+                with open(PATHS.importignore,"w") as f:
                     json.dump(ignore,f)
-                with open("breakpoints.json","w") as f:
+                with open(PATHS.breakpoints) as f:
                     json.dump(breakpoints,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except requests.exceptions.RequestException as e:
