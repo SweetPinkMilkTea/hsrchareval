@@ -3,6 +3,7 @@ import re
 import json, time, os, traceback
 from pathlib import Path
 from copy import deepcopy as dcp
+import subprocess
 
 from bs4 import BeautifulSoup
 import requests
@@ -15,6 +16,23 @@ def get_app_data_path(app_name="HSRCharEval"):
         return Path.home() / "Library" / "Application Support" / app_name
     else:  # Linux
         return Path.home() / f".{app_name.lower()}"
+    
+def open_file_explorer(path):
+    system = platform.system()
+    try:
+        if system == "Windows":
+            os.startfile(path)
+        elif system == "Darwin":
+            subprocess.run(["open", path], check=True)
+        elif system == "Linux":
+            if "DISPLAY" in os.environ:
+                subprocess.run(["xdg-open", path], check=True)
+            else:
+                raise EnvironmentError("No GUI environment detected (missing DISPLAY)")
+        else:
+            raise NotImplementedError(f"Unsupported OS: {system}")
+    except Exception as e:
+        print(f"Could not open file explorer: {e}")
 
 def timespan(ts):
     now = time.time()
@@ -788,10 +806,10 @@ try:
                 print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
-            print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n")
+            print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n[4] - Manage Savefile")
             try:
                 lm = int(input("> "))
-                if lm not in range(1,4):
+                if lm not in range(1,5):
                     raise ValueError("Invalid Index")
             except:
                 continue
@@ -951,6 +969,25 @@ try:
                                 input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
                         except KeyboardInterrupt:
                             break
+            elif lm == 4:
+                print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Delete a character\n[2] - Delete a breakpoint\n[3] - Delete a characters bridges\n[4] - Wipe save\n\nOr, if you like tinkering:\n\n[0] - Open save directory")
+                try:
+                    lm = int(input("> "))
+                    if lm not in range(0,5):
+                        raise ValueError("Invalid Index")
+                except:
+                    continue
+                if lm == 1:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                if lm == 2:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                if lm == 3:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                if lm == 4:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                if lm == 0:
+                    open_file_explorer(get_app_data_path())
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
