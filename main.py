@@ -16,6 +16,30 @@ def get_app_data_path(app_name="HSRCharEval"):
     else:  # Linux
         return Path.home() / f".{app_name.lower()}"
 
+def timespan(ts):
+    now = time.time()
+    diff = int(now - ts)
+
+    if diff < 0:
+        return "in the future"
+
+    units = [
+        ('year', 60 * 60 * 24 * 365),
+        ('month', 60 * 60 * 24 * 30),
+        ('week', 60 * 60 * 24 * 7),
+        ('day', 60 * 60 * 24),
+        ('hour', 60 * 60),
+        ('minute', 60),
+        ('second', 1),
+    ]
+
+    for unit_name, unit_seconds in units:
+        value = diff // unit_seconds
+        if value > 0:
+            return f"{value} {unit_name}{'s' if value > 1 else ''} ago"
+
+    return "just now"
+
 def attributeScore(key, metric, target, isInverse):
     # Logic on Inverse
     if isInverse:
@@ -239,7 +263,8 @@ try:
                 highlight = "7;" if score[0] == "X" else ""
                 sp = ["",""]
                 sp[1 if score[0] == "X" else 0] = " "
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m |")
+                updated = timespan(characters[sorted(list(characters.keys()))[h]]["updated"])
+                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
@@ -434,7 +459,7 @@ try:
                         if lm == 1:
                             print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
-                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {int((time.time() - characters[sorted(list(breakpoints.keys()))[i]]['updated'])/(3600*24))}d ago\033[0m")
+                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
 
             try:
                 x = input("> ")
@@ -633,7 +658,7 @@ try:
                 for i in breakpoints:
                     if i not in bridgedata:
                         bridgedata[i] = {}
-                        
+
                 with open(PATHS.characters,"r") as f:
                     characters = json.load(f)
 
