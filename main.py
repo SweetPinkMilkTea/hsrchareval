@@ -633,10 +633,11 @@ try:
                 for i in breakpoints:
                     if i not in bridgedata:
                         bridgedata[i] = {}
-                
-                if [key for key, value in breakpoints[target].items() if value == -1 and key != "inverse"] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key != "inverse"]:
-                    with open(PATHS.characters,"r") as f:
-                        characters = json.load(f)
+                        
+                with open(PATHS.characters,"r") as f:
+                    characters = json.load(f)
+
+                if [key for key, value in breakpoints[target].items() if value == -1 and key != "inverse"] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key != "inverse"] and target in characters:
                     print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
                     del characters[target]
                     with open(PATHS.characters,"w") as f:
