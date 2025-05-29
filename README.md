@@ -134,8 +134,8 @@ This option allows for scanning characters without saving. This is best used on 
 
     You can open the folder where all data is saved as well.
 
-    > [!NOTE]
-    > Opening the save directory this way is only possible with graphic enviroments.
+> [!NOTE]
+> Opening the save directory this way is only possible with graphic enviroments.
 
 ## Contributing
 
