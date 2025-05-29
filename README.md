@@ -128,13 +128,24 @@ This option allows for scanning characters without saving. This is best used on 
 
     Edit the name mapping to resolve issues importing characters, you can verify your mappings in this menu as well.
 
+4. **Savefile Management**
+
+    Manage the date you have created here. You can delete a character of yours, breakpoints and/or bridges. You can wipe your save too.
+
+    You can open the folder where all data is saved as well.
+
+    > [!NOTE]
+    > Opening the save directory this way is only possible with graphic enviroments.
+
 ## Contributing
 
 Report issues at the issue section of the repository. Make sure that the issue is reproduceable with the latest version.
 
-To propose features, use the appropriate tag.
+To propose features, use the appropriate tag as issues as well.
 
 To contribute a pull request, keep the implementation simple and limited to the functionality you wish to achieve, while providing sufficient detail.
+
+Thank you for your interest and support! <3
 
 ## Acknowledgements
 

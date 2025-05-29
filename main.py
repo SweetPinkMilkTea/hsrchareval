@@ -1,8 +1,10 @@
 import platform
 import re
+import shutil
 import json, time, os, traceback
 from pathlib import Path
 from copy import deepcopy as dcp
+import subprocess
 
 from bs4 import BeautifulSoup
 import requests
@@ -15,6 +17,23 @@ def get_app_data_path(app_name="HSRCharEval"):
         return Path.home() / "Library" / "Application Support" / app_name
     else:  # Linux
         return Path.home() / f".{app_name.lower()}"
+    
+def open_file_explorer(path):
+    system = platform.system()
+    try:
+        if system == "Windows":
+            os.startfile(path)
+        elif system == "Darwin":
+            subprocess.run(["open", path], check=True)
+        elif system == "Linux":
+            if "DISPLAY" in os.environ:
+                subprocess.run(["xdg-open", path], check=True)
+            else:
+                raise EnvironmentError("No GUI environment detected (missing DISPLAY)")
+        else:
+            raise NotImplementedError(f"Unsupported OS: {system}")
+    except Exception as e:
+        print(f"Could not open file explorer: {e}")
 
 def timespan(ts):
     now = time.time()
@@ -225,14 +244,15 @@ try:
                 continue
             namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
             print(f"\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
-            for h in range(len(characters)):
+            index = 1
+            for target in sorted(list(characters.keys())):
                 allscore = []
                 allratio = []
-                inverse = breakpoints[sorted(list(characters.keys()))[h]]["inverse"]
-                for i in characters[sorted(list(characters.keys()))[h]]:
+                inverse = breakpoints[target]["inverse"]
+                for i in characters[target]:
                     if i != "updated":
-                        value1 = float(characters[sorted(list(characters.keys()))[h]][i]) + bridgedata[sorted(list(characters.keys()))[h]].get(i,0)
-                        value2 = float(breakpoints[sorted(list(characters.keys()))[h]][i])
+                        value1 = float(characters[target][i]) + bridgedata.get(target,{}).get(i,0)
+                        value2 = float(breakpoints[target][i])
                         value1 = int(value1) if value1.is_integer() else value1
                         value2 = int(value2) if value2.is_integer() else value2
                         ratio = 2*value1/value2-1
@@ -263,8 +283,9 @@ try:
                 highlight = "7;" if score[0] == "X" else ""
                 sp = ["",""]
                 sp[1 if score[0] == "X" else 0] = " "
-                updated = timespan(characters[sorted(list(characters.keys()))[h]]["updated"])
-                print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(characters.keys()))[h].upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                updated = timespan(characters[target]["updated"])
+                print(f" \033[38;5;{color[grade]}m{index:03d} \033[0m| \033[38;5;{color[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                index += 1
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
                 x = input("> ")
@@ -354,12 +375,13 @@ try:
                 namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
                 print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
                 teams_condense = []
-                for h in range(len(teams)):
+                index = 1
+                for target in sorted(list(teams.keys())):
                     cumulativescore = []
                     cumulativeratio = []
                     rank_str = ""
                     team_content = []
-                    for ii in teams[sorted(list(teams.keys()))[h]]:
+                    for ii in teams[target]:
                         allscore = []
                         allratio = []
                         inverse = breakpoints[ii]["inverse"]
@@ -405,8 +427,9 @@ try:
                         else:
                             break
                     color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                    print(f" \033[38;5;{color[grade]}m{h+1:03d} \033[0m| \033[38;5;{color[grade]}m{sorted(list(teams.keys()))[h].upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                    print(f" \033[38;5;{color[grade]}m{index:03d} \033[0m| \033[38;5;{color[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                     teams_condense.append(team_content)
+                    index += 1
                 print("\n\033[38;5;240mEnter ID for review characters assigned to team, CTRL + C to return.\033[0m")
                 try:
                     x = input("> ")
@@ -788,10 +811,10 @@ try:
                 print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
-            print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n")
+            print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n[4] - Manage Savefile")
             try:
                 lm = int(input("> "))
-                if lm not in range(1,4):
+                if lm not in range(1,5):
                     raise ValueError("Invalid Index")
             except:
                 continue
@@ -951,6 +974,109 @@ try:
                                 input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
                         except KeyboardInterrupt:
                             break
+            elif lm == 4:
+                with open(PATHS.characters) as f:
+                    characters = json.load(f)
+                with open(PATHS.breakpoints) as f:
+                    breakpoints = json.load(f)
+                with open(PATHS.bridgedata) as f:
+                    bridgedata = json.load(f)
+                with open(PATHS.teams) as f:
+                    teams = json.load(f)
+                print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Delete a character\n[2] - Delete a breakpoint and character\n[3] - Delete a characters bridges\n[4] - Delete a team\n[5] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
+                try:
+                    lm = int(input("\n> "))
+                    if lm not in range(0,6):
+                        raise ValueError("Invalid Index")
+                except:
+                    continue
+                if lm == 1:
+                    target = input("Target Name:").strip().lower()
+                    if target in characters:
+                        del characters[target]
+                        if target in bridgedata:
+                            del bridgedata[target]
+                        tbr = None
+                        for team in teams.keys():
+                            if target in teams[team]:
+                                tbr = team
+                        if tbr:
+                            del teams[tbr]
+                        with open(PATHS.characters, "w") as f:
+                             json.dump(characters, f)
+                        with open(PATHS.breakpoints, "w") as f:
+                             json.dump(breakpoints, f)
+                        with open(PATHS.bridgedata, "w") as f:
+                             json.dump(bridgedata, f)
+                        with open(PATHS.teams, "w") as f:
+                             json.dump(teams, f)
+                        input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
+                    else:
+                        input("\n\033[31m[ Entry doesn't exist in characters ]\033[0m")
+                if lm == 2:
+                    target = input("Target Name:").strip().lower()
+                    if target in breakpoints:
+                        del breakpoints[target]
+                        del characters[target]
+                        if target in bridgedata:
+                            del bridgedata[target]
+                        tbr = None
+                        for team in teams:
+                            if target in teams[team]:
+                                tbr = teams[team]
+                        if tbr:
+                            del tbr
+                        with open(PATHS.characters, "w") as f:
+                             json.dump(characters, f)
+                        with open(PATHS.breakpoints, "w") as f:
+                             json.dump(breakpoints, f)
+                        with open(PATHS.bridgedata, "w") as f:
+                             json.dump(bridgedata, f)
+                        with open(PATHS.teams, "w") as f:
+                             json.dump(teams, f)
+                        input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
+                    else:
+                        input("\n\033[31m[ Entry doesn't exist in breakpoints ]\033[0m")
+                if lm == 3:
+                    target = input("Target Name:").strip().lower()
+                    if target in bridgedata:
+                        bridgedata[target] = {}
+                        with open(PATHS.characters, "w") as f:
+                             json.dump(characters, f)
+                        with open(PATHS.breakpoints, "w") as f:
+                             json.dump(breakpoints, f)
+                        with open(PATHS.bridgedata, "w") as f:
+                             json.dump(bridgedata, f)
+                        input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
+                    else:
+                        input("\n\033[31m[ Entry doesn't exist or has no bridges ]\033[0m")
+                if lm == 4:
+                    target = input("Target Name:").strip().lower()
+                    if target in teams:
+                        del teams[target]
+                        with open(PATHS.teams, "w") as f:
+                             json.dump(teams, f)
+                        input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
+                    else:
+                        input("\n\033[31m[ Entry doesn't exist ]\033[0m")
+                if lm == 5:
+                    print("\033c\033[31;7m !!!                   >\033[0m\n\n\033[31mAre you SURE that you want to wipe all data?\nIf yes, type 'CONFIRM' to continue.")
+                    if input("\n> ") != "CONFIRM":
+                        continue
+                    folder = get_app_data_path()
+                    for filename in os.listdir(folder):
+                        file_path = os.path.join(folder, filename)
+                        try:
+                            if os.path.isfile(file_path) or os.path.islink(file_path):
+                                os.unlink(file_path)
+                            elif os.path.isdir(file_path):
+                                shutil.rmtree(file_path)
+                        except Exception as e:
+                            raise Exception(f"\033[31m\nFailed to delete {file_path} ({e}).\nTry to delete the offending data yourself.\033[0m")
+                    raise Exception(f"Reset complete. Start the program again to start fresh.")
+                if lm == 0:
+                    open_file_explorer(get_app_data_path())
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
