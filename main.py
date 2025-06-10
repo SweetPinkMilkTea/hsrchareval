@@ -9,6 +9,9 @@ import subprocess
 from bs4 import BeautifulSoup
 import requests
 
+# Constants
+coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
+floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
 
 def get_app_data_path(app_name="HSRCharEval"):
     if platform.system() == "Windows":
@@ -507,33 +510,25 @@ try:
             try:
                 if uid != "0":
                     api_name = api_name_mapping.get(target,target)
-                    response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1")
+                    response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v2")
                     response.raise_for_status()
                     api_data = response.json()
                     api_chars = [x['name'].lower() for x in api_data["characters"]]
                     api_attr = {}
+                    keymap = {"break dmg":"break effect","sp rate":"energy regen"}
                     if api_name.lower() in api_chars:
                         index = api_chars.index(api_name.lower())
-                        for i in api_data["characters"][index]["property"]:
-                            if "%" in i['base']:
-                                i['base'] = i['base'][:-1]
-                            i['base'] = float(i['base'])
-                            if i['name'] == 'Energy Regeneration Rate':
-                                api_attr['energy regen'] = i['base']
-                            elif i['name'] == 'Effect Hit Rate':
-                                api_attr['effect hit'] = i['base']
-                            else:
-                                api_attr[i['name'].lower()] = i['base']
-                            if i['name'] in ['Energy Regeneration Rate']:
-                                api_attr['energy regen'] += 100
-                            if not i['addition'] is None:
-                                api_attr[i['name'].lower()] += float(i['addition'])
-                        if "energy regen" not in api_attr:
-                            api_attr['energy regen'] = 100
-                        if "break effect" not in api_attr:
-                            api_attr['break effect'] = 0
-                        if "effect hit" not in api_attr:
-                            api_attr['effect hit'] = 0
+                        for attribute in coreAttributes:
+                            api_attr[attribute] = 0
+                        api_attr["energy regen"] = 100
+                        for key in ["attributes","additions"]:
+                            for attribute in api_data["characters"][index][key]:
+                                value = attribute["value"]
+                                key = attribute["field"].replace("_", " ")
+                                api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] else 1), 1)
+                        for value in api_attr:
+                            if value not in floatingCoreAttributes:
+                                api_attr[value] = int(round(api_attr[value], 0))
                         if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() != "y":
                             api_attr = {}
                     else:
@@ -892,7 +887,7 @@ try:
                     continue
                 if lm == 1:
                     try:
-                        response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v1")
+                        response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v2")
                         response.raise_for_status()
                         api_data = response.json()
                         api_chars = [x['name'].lower() for x in api_data["characters"]]
@@ -1081,4 +1076,4 @@ try:
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
 except Exception as e:
-    input(f"\033[31m\nERR:\n{traceback.format_exc()}\033[0m")
+    input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\033[0m")
