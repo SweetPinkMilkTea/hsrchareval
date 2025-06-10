@@ -978,14 +978,17 @@ try:
                     bridgedata = json.load(f)
                 with open(PATHS.teams) as f:
                     teams = json.load(f)
-                print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Delete a character\n[2] - Delete a breakpoint and character\n[3] - Delete a characters bridges\n[4] - Delete a team\n[5] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
+                print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Create a backup\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
                 try:
                     lm = int(input("\n> "))
-                    if lm not in range(0,6):
+                    if lm not in range(0,7):
                         raise ValueError("Invalid Index")
                 except:
                     continue
                 if lm == 1:
+                    shutil.make_archive(Path.home() / f"HSRCE-Backup-{time.time()}", 'zip', APP_DATA_DIR)
+                    input(f"\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                if lm == 2:
                     target = input("Target Name:").strip().lower()
                     if target in characters:
                         del characters[target]
@@ -1008,7 +1011,7 @@ try:
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist in characters ]\033[0m")
-                if lm == 2:
+                if lm == 3:
                     target = input("Target Name:").strip().lower()
                     if target in breakpoints:
                         del breakpoints[target]
@@ -1032,7 +1035,7 @@ try:
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist in breakpoints ]\033[0m")
-                if lm == 3:
+                if lm == 4:
                     target = input("Target Name:").strip().lower()
                     if target in bridgedata:
                         bridgedata[target] = {}
@@ -1045,7 +1048,7 @@ try:
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist or has no bridges ]\033[0m")
-                if lm == 4:
+                if lm == 5:
                     target = input("Target Name:").strip().lower()
                     if target in teams:
                         del teams[target]
@@ -1054,7 +1057,7 @@ try:
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist ]\033[0m")
-                if lm == 5:
+                if lm == 6:
                     print("\033c\033[31;7m !!!                   >\033[0m\n\n\033[31mAre you SURE that you want to wipe all data?\nIf yes, type 'CONFIRM' to continue.")
                     if input("\n> ") != "CONFIRM":
                         continue
