@@ -51,7 +51,7 @@ Once breakpoints are created, continue entering your own character information.
 Open the character edit screen with Option 3, and with the "All characters" filter, select the character you have previously created breakpoints for and enter all prompted stats.
 
 > [!TIP]
-> If you have entered your UID and your target character is part of your "Starfaring Companions", their stats can be imported without the need to type them out.
+> If you have entered your UID and your target character is part of your "Starfaring Companions" or "Support Character", their stats can be imported without the need to type them out.
 
 Once you are done, visit your character overview located under Option 1.
 
@@ -76,7 +76,7 @@ Either create or update a character you have. If you have set an UID, importing 
 You cannot create a character if no breakpoints have been recorded.
 
 > [!NOTE]
-> Importing a character from a UID is only possible if it's showcased under "Starfaring Companions" (not Supporting Units) and it's API name matches the respective breakpoint name.
+> Importing a character from a UID is only possible if it's showcased ("Starfaring Companions"/"Support Character") and it's API name matches the respective breakpoint name.
 > Should these mismatch, head to the config menu to set up a mapping.
 
 #### 4 | Create/Edit teams
