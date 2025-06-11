@@ -9,6 +9,9 @@ import subprocess
 from bs4 import BeautifulSoup
 import requests
 
+# Own File Imports
+import reliccom
+
 # Constants
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
@@ -105,6 +108,7 @@ class PATHS:
     bridgedata = APP_DATA_DIR / "bridgedata.json"
     importignore = APP_DATA_DIR / "importignore.json"
     api_name_map = APP_DATA_DIR / "apinamemap.json"
+    relics = APP_DATA_DIR / "relics.json"
 
 try:
     # Setup
@@ -128,6 +132,9 @@ try:
             json.dump({"keys":[]},f)
     if not PATHS.api_name_map.exists():
         with open(PATHS.api_name_map,"w") as f:
+            json.dump({},f)
+    if not PATHS.relics.exists():
+        with open(PATHS.relics,"w") as f:
             json.dump({},f)
 
     with open(PATHS.breakpoints) as f:
@@ -242,6 +249,8 @@ try:
         if menuindex == 1:
             with open(PATHS.characters) as f:
                 characters = json.load(f)
+            with open(PATHS.relics) as f:
+                relics = json.load(f)
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
@@ -466,6 +475,8 @@ try:
         if menuindex == 3:
             with open(PATHS.characters) as f:
                 characters = json.load(f)
+            with open(PATHS.relics) as f:
+                relics = json.load(f)
             print("\033c\033[7m Select List Mode                 >\033[0m\n\n[1] - All\n[2] - Only already set")
             try:
                 lm = int(input("> "))
@@ -515,6 +526,7 @@ try:
                     api_data = response.json()
                     api_chars = [x['name'].lower() for x in api_data["characters"]]
                     api_attr = {}
+                    api_relic = []
                     keymap = {"break dmg":"break effect","sp rate":"energy regen"}
                     if api_name.lower() in api_chars:
                         index = api_chars.index(api_name.lower())
@@ -532,8 +544,17 @@ try:
                         for value in api_attr:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
-                        if input("API Data found! Continue using it? (Y/N) > \033[38;5;202m").lower() != "y":
+                        
+                        relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
+                        if relicstatus:
+                            api_relic = reliccom.extract(api_data["characters"][index]["relics"])
+                        
+                        print("API Data found!")
+                        print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
+                        if input("Continue? (Y/N) > \033[38;5;202m").lower() != "y":
                             api_attr = {}
+                            relicstatus = {"success":False, "message":"Import skipped"}
+
                     else:
                         print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
                 else:
@@ -541,6 +562,7 @@ try:
             except requests.exceptions.RequestException:
                 print("Couldn't load from profile because of network issues. Continue entering manually.\n")
                 api_attr = {}
+                relicstatus = {"success":False, "message":"No connection"}
             print("\033[0m", end="")
             old_temp = characters[target]
             characters[target] = {}
@@ -579,9 +601,12 @@ try:
                 input("\n\033[31m[ An Error occured and character data was reverted. ]\033[0m")
                 characters[target] = old_temp
                 continue
+            relics[target] = api_relic
             characters[target]["updated"] = int(time.time())
             with open(PATHS.characters,"w") as f:
                 json.dump(characters,f)
+            with open(PATHS.relics,"w") as f:
+                json.dump(relics,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 4:
             with open(PATHS.teams) as f:
@@ -989,7 +1014,7 @@ try:
                 except:
                     continue
                 if lm == 1:
-                    shutil.make_archive(Path.home() / f"HSRCE-Backup-{time.time()}", 'zip', APP_DATA_DIR)
+                    shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', APP_DATA_DIR)
                     input(f"\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
                 if lm == 2:
                     target = input("Target Name:").strip().lower()
