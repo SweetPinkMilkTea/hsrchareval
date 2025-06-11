@@ -526,9 +526,9 @@ try:
                                 value = attribute["value"]
                                 key = attribute["field"].replace("_", " ")
                                 try:
-                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] else 1), 1)
+                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
                                 except KeyError:
-                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] else 1), 1)
+                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
                         for value in api_attr:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
