@@ -263,10 +263,10 @@ try:
                 allscore = []
                 allratio = []
                 inverse = breakpoints[target]["inverse"]
-                for i in characters[target]:
-                    if i != "updated":
-                        value1 = float(characters[target][i]) + bridgedata.get(target,{}).get(i,0)
-                        value2 = float(breakpoints[target][i])
+                for attribute in characters[target]:
+                    if attribute != "updated":
+                        value1 = float(characters[target][attribute]) + bridgedata.get(target,{}).get(attribute,0)
+                        value2 = float(breakpoints[target][attribute])
                         value1 = int(value1) if value1.is_integer() else value1
                         value2 = int(value2) if value2.is_integer() else value2
                         ratio = 2*value1/value2-1
@@ -287,8 +287,8 @@ try:
                 r_acc = round(sum(allratio*100)/len(allratio),2)
                 acc = f"{r_acc:,}%"
                 grade = "F"
-                gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
-                for i in [50,70,80,90,95,100]:
+                gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
+                for i in gradelist:
                     if r_acc >= i:
                         grade = gradelist[i]
                     else:
@@ -532,20 +532,22 @@ try:
                         for attribute in coreAttributes:
                             api_attr[attribute] = 0
                         api_attr["energy regen"] = 100
-                        for key in ["attributes","additions"]:
-                            for attribute in api_data["characters"][index][key]:
+                        for section in ["attributes","additions"]:
+                            for attribute in api_data["characters"][index][section]:
                                 value = attribute["value"]
                                 key = attribute["field"].replace("_", " ")
                                 try:
                                     api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
                                 except KeyError:
                                     api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
+                                if section == "attributes" and key in ["atk", "def", "hp"]:
+                                    api_attr["base_" + key] = value
                         for value in api_attr:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
                         
                         relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
-                        if relicstatus:
+                        if relicstatus["success"]:
                             api_relic = reliccom.extract(api_data["characters"][index]["relics"])
                         
                         print("API Data found!")
@@ -600,7 +602,8 @@ try:
                 input("\n\033[31m[ An Error occured and character data was reverted. ]\033[0m")
                 characters[target] = old_temp
                 continue
-            relics[target] = api_relic
+            if relicstatus["success"]:
+                relics[target] = {"equipment":api_relic, "base_values":{k: v for k, v in api_attr.items() if k.startswith('base')}}
             characters[target]["updated"] = int(time.time())
             with open(PATHS.characters,"w") as f:
                 json.dump(characters,f)
@@ -779,7 +782,7 @@ try:
                             break
                         except:
                             pass
-                    q_char[i] = x
+                    q_char[attribute] = x
             print()
             allscore = []
             allratio = []
