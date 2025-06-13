@@ -15,6 +15,7 @@ import reliccom
 # Constants
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
+supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg"]
 
 rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"197","X":"200"}
 
@@ -601,7 +602,9 @@ try:
                 characters[target] = old_temp
                 continue
             if relicstatus["success"]:
-                relics[target] = {"equipment":api_relic, "base_values":{k: v for k, v in api_attr.items() if k.startswith('base')}}
+                relics[target]["equipment"] = api_relic
+                relics[target]["base_values"] = {k: v for k, v in api_attr.items() if k.startswith('base')}
+                print("\nRelics successfully set.")
             characters[target]["updated"] = int(time.time())
             with open(PATHS.characters,"w") as f:
                 json.dump(characters,f)
@@ -660,6 +663,8 @@ try:
             print("\033[38;5;202m\033[1mWarning:\033[22m\nYou are editing character target values.\nPress CTRL + C to return to main menu if you just want to enter your own character information.\033[0m\n")
             try:
                 target = input("Enter name: \033[38;5;202m").lower().strip()
+                if target == "":
+                    raise ValueError("Can't be empty.")
             except:
                 continue
             print("\033[0m",end="")
@@ -674,7 +679,10 @@ try:
                 except:
                     continue
             prev_breakpoints = dcp(breakpoints)
+            prev_relics = dcp(relics)
             breakpoints[target] = {}
+            if not target in relics:
+                relics[target] = {"equipment":[],"base_values":{},"prio":{"main":[],"sub":{}}}
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
             try:
                 for i in coreAttributes:
@@ -694,6 +702,34 @@ try:
                         raise ValueError("Invalid attributes for Inverse supplied.")
                 else:
                     breakpoints[target]["inverse"] = []
+
+                print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
+                x = input(f"\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
+                x = [item.strip().lower() for item in x.split(",")]
+                attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
+                xs = [item.strip() for item in x if item.lower() in attr_ok]
+                xn = [item.strip() for item in x if not item.lower() in attr_ok]
+                if len(xs) == 4:
+                    relics[target]["prio"]["main"] = xs
+                else:
+                    print(x, xs, attr_ok)
+                    raise ValueError(f"Invalid attribute(s): {", ".join(xn)}")
+                
+                print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic sub stats.\033[0m")
+                x = input(f"\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
+                priority_groups = [group.strip() for group in x.lower().split(">")]
+                prio_dict = {}
+                current_rank = 1
+                for group in priority_groups:
+                    attrs = [attr.strip() for attr in group.split("=")]
+                    for attr in attrs:
+                        if attr not in coreAttributes + ["atk%","def%","hp%"]:
+                            raise ValueError(f"Invalid attribute supplied: '{attr}'")
+                    for attr in attrs:
+                        prio_dict[attr] = current_rank
+                    current_rank += 1
+                relics[target]["prio"]["sub"] = prio_dict
+
                 with open(PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
                 for i in breakpoints:
@@ -703,7 +739,7 @@ try:
                 with open(PATHS.characters,"r") as f:
                     characters = json.load(f)
 
-                if [key for key, value in breakpoints[target].items() if value == -1 and key != "inverse"] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key != "inverse"] and target in characters:
+                if [key for key, value in breakpoints[target].items() if value == -1 and not key in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and not key in coreAttributes] and target in characters:
                     print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
                     del characters[target]
                     with open(PATHS.characters,"w") as f:
@@ -712,6 +748,8 @@ try:
                     json.dump(breakpoints,f)
                 with open(PATHS.bridgedata,"w") as f:
                     json.dump(bridgedata,f)
+                with open(PATHS.relics,"w") as f:
+                    json.dump(relics,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except ValueError as e:
                 breakpoints = prev_breakpoints
