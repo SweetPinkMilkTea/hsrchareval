@@ -1,3 +1,19 @@
+# Arrays: [0] is minimum, [1] maximum; per roll
+roll_dist = {
+    "hp": [33, 42],
+    "atk": [16, 21],
+    "def": [16, 21],
+    "hp%": [3.4, 4.4],
+    "atk%": [3.4, 4.4],
+    "def%": [4.3, 5.4],
+    "crit_rate": [2.5, 3.2],
+    "crit_dmg": [5.1, 6.5],
+    "effect_hit": [3.4, 4.3],
+    "effect_res": [3.4, 4.3],
+    "break_effect": [5.1, 6.5],
+    "spd": [2, 2.6]
+}
+
 def extract(rawdata):
     exp = []
     set_ids = {}
@@ -12,7 +28,12 @@ def extract(rawdata):
         # sub stats
         current["sub"] = []
         for substat in relic["sub_affix"]:
-            current["sub"].append({"key":substat["field"], "value":round(substat["value"] * 100 if substat["percent"] else 1,2), "count":substat["count"]})
+            key = substat["field"]
+            if key in ["atk", "def", "hp"] and substat["percent"]:
+                key += "%"
+            value = round(substat["value"] * 100 if substat["percent"] else substat["value"],2)
+            count = substat["count"]
+            current["sub"].append({"key":key, "value":value, "count":count})
         exp.append(current)
     return exp
     
@@ -26,3 +47,7 @@ def validate(rawdata):
         return {"success": False,"message": "Computation failed."}
     else:
         return {"success": True,"message": "OK"}
+
+# targets: Info about correct Main Stats and prioritized Subs
+def analyse(relics, targets):
+    return 0
