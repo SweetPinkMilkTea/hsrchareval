@@ -16,6 +16,8 @@ import reliccom
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
 
+rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"197","X":"200"}
+
 def get_app_data_path(app_name="HSRCharEval"):
     if platform.system() == "Windows":
         return Path(os.getenv('LOCALAPPDATA')) / app_name
@@ -291,12 +293,11 @@ try:
                         grade = gradelist[i]
                     else:
                         break
-                color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
                 highlight = "7;" if score[0] == "X" else ""
                 sp = ["",""]
                 sp[1 if score[0] == "X" else 0] = " "
                 updated = timespan(characters[target]["updated"])
-                print(f" \033[38;5;{color[grade]}m{index:03d} \033[0m| \033[38;5;{color[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{color[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{rankcolor[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
                 index += 1
             print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
             try:
@@ -438,8 +439,7 @@ try:
                             grade = gradelist[i]
                         else:
                             break
-                    color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
-                    print(f" \033[38;5;{color[grade]}m{index:03d} \033[0m| \033[38;5;{color[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{color[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{color[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{color[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                    print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{rankcolor[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                     teams_condense.append(team_content)
                     index += 1
                 print("\n\033[38;5;240mEnter ID for review characters assigned to team, CTRL + C to return.\033[0m")
@@ -457,9 +457,8 @@ try:
                 x = int(x)-1
                 print(f"\n\033[7m NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n {namespacing*' '}|             |          |      |")
                 team = teams_condense[x]
-                color = {"F":"125","D":"196","C":"202","B":"220","A":"76","S":"81","S+":"171"}
                 for character in range(4):
-                    theme = color[teams_condense[x][character]["rank"]]
+                    theme = rankcolor[teams_condense[x][character]["rank"]]
                     name = teams_condense[x][character]["name"]
                     acc = f'{teams_condense[x][character]["ratio"]:,}%'
                     grade = teams_condense[x][character]["rank"]
