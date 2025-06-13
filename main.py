@@ -272,7 +272,7 @@ try:
                             ratio = 0
                         if ratio > 1:
                             ratio = 1
-                        score = attributeScore(i, value1, value2, i in inverse)
+                        score = attributeScore(attribute, value1, value2, attribute in inverse)
                         if score >= 100000:
                             ratio = 1
                         allscore.append(score)
@@ -567,33 +567,33 @@ try:
             old_temp = characters[target]
             characters[target] = {}
             try:
-                for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                    if breakpoints[target][i] != -1:
+                for attribute in coreAttributes:
+                    if breakpoints[target][attribute] != -1:
                         while True:
                             if api_attr == {}:
-                                x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
+                                valueInput = input(f"Enter value for \033[1m{attribute.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
                             else:
-                                print(f"\033[1m{i.upper()}\033[0m: \033[38;5;202m{api_attr[i.lower()]}")
-                                x = api_attr[i.lower()]
+                                print(f"\033[1m{attribute.upper()}\033[0m: \033[38;5;202m{api_attr[attribute.lower()]}")
+                                valueInput = api_attr[attribute.lower()]
                             try:
-                                float(x)
+                                float(valueInput)
                                 break
                             except:
                                 pass
                         if comp_mode:
-                            if not i in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                                color = 196 if int(x) < int(lastdata[i]) else 40
-                                if int(x) == int(lastdata[i]):
+                            if not attribute in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                                color = 196 if int(valueInput) < int(lastdata[attribute]) else 40
+                                if int(valueInput) == int(lastdata[attribute]):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if int(x) <= int(lastdata[i]) else '+'}{int(x) - int(lastdata[i])} \033[38;5;240m(from {int(lastdata[i])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if int(valueInput) <= int(lastdata[attribute]) else '+'}{int(valueInput) - int(lastdata[attribute])} \033[38;5;240m(from {int(lastdata[attribute])})\033[0m")
                             else:
-                                color = 196 if float(x) < float(lastdata[i]) else 40
-                                if float(x) == float(lastdata[i]):
+                                color = 196 if float(valueInput) < float(lastdata[attribute]) else 40
+                                if float(valueInput) == float(lastdata[attribute]):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if float(x) <= float(lastdata[i]) else '+'}{round(float(x) - float(lastdata[i]),1)} \033[38;5;240m(from {float(lastdata[i])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if float(valueInput) <= float(lastdata[attribute]) else '+'}{round(float(valueInput) - float(lastdata[attribute]),1)} \033[38;5;240m(from {float(lastdata[attribute])})\033[0m")
                         else:
                             print("\033[0m",end="")
-                        characters[target][i] = x
+                        characters[target][attribute] = valueInput
             except KeyboardInterrupt:
                 characters[target] = old_temp
                 continue
@@ -679,10 +679,9 @@ try:
                     continue
             prev_breakpoints = dcp(breakpoints)
             breakpoints[target] = {}
-            attributes = ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
             try:
-                for i in attributes:
+                for i in coreAttributes:
                     x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
                     x.replace(",",".")
                     print("\033[0m",end="")
@@ -691,8 +690,8 @@ try:
                 x = input(f"Enter attributes (Seperate multiple with comma or leave blank): \033[38;5;202m")
                 if x != "":
                     x = x.lower().split(",")
-                    xnot = [item.strip() for item in x if item.lower() not in attributes]
-                    xs = [item.strip() for item in x if item.lower() in attributes]
+                    xnot = [item.strip() for item in x if item.lower() not in coreAttributes]
+                    xs = [item.strip() for item in x if item.lower() in coreAttributes]
                     if len(xnot) == 0:
                         breakpoints[target]["inverse"] = xs
                     else:
@@ -742,7 +741,7 @@ try:
             if list(breakpoints[target].values()) == [-1] * 9:
                 input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
-            if not key in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
+            if not key in coreAttributes:
                 input(f"\n\033[31m[ Value key not recognized. ]\033[0m")
                 continue
             try:
@@ -771,10 +770,10 @@ try:
                 input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
             q_char = {}
-            for i in ["hp","atk","def","spd","crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                if breakpoints[target][i] != -1:
+            for attribute in coreAttributes:
+                if breakpoints[target][attribute] != -1:
                     while True:
-                        x = input(f"Enter value for \033[1m{i.upper()}\033[0m: \033[38;5;202m")
+                        x = input(f"Enter value for \033[1m{attribute.upper()}\033[0m: \033[38;5;202m")
                         print("\033[0m",end="")
                         try:
                             float(x)
@@ -786,9 +785,9 @@ try:
             allscore = []
             allratio = []
             inverse = breakpoints[target]["inverse"]
-            for i in q_char:
-                value1 = float(q_char[i])
-                value2 = float(breakpoints[target][i])
+            for attribute in q_char:
+                value1 = float(q_char[attribute])
+                value2 = float(breakpoints[target][attribute])
                 value1 = int(value1) if value1.is_integer() else value1
                 value2 = int(value2) if value2.is_integer() else value2
                 ratio = 2*value1/value2-1
@@ -796,7 +795,7 @@ try:
                     ratio = 0
                 if ratio > 1:
                     ratio = 1
-                score = attributeScore(i, value1, value2, i in inverse)
+                score = attributeScore(attribute, value1, value2, attribute in inverse)
                 if score >= 100000:
                     ratio = 1
                 allscore.append(score)
@@ -813,7 +812,7 @@ try:
                 #40 green
                 colorcode = [40,220,202,196]
                 col_index = 0
-                if i in inverse:
+                if attribute in inverse:
                     comp_symbol = "<"
                     if value1 > value2:
                         col_index += 3
@@ -825,7 +824,7 @@ try:
                         col_index += 1
                     if value1 < (value2 - value2/5):
                         col_index += 1
-                print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
+                print(f" {attribute.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
             print("\n")
             score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
             if score >= 100000:
