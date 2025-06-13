@@ -228,6 +228,16 @@ try:
     else:
         isOffline = False
 
+    
+    with open(PATHS.characters) as f:
+        characters = json.load(f)
+    with open(PATHS.relics) as f:
+        relics = json.load(f)
+    with open(PATHS.teams) as f:
+        teams = json.load(f)
+    with open(PATHS.breakpoints) as f:
+        breakpoints = json.load(f)
+
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
         if isOffline:
@@ -249,10 +259,6 @@ try:
             continue
         print()
         if menuindex == 1:
-            with open(PATHS.characters) as f:
-                characters = json.load(f)
-            with open(PATHS.relics) as f:
-                relics = json.load(f)
             if len(characters) == 0:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
@@ -378,10 +384,6 @@ try:
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
-                with open(PATHS.characters) as f:
-                    characters = json.load(f)
-                with open(PATHS.teams) as f:
-                    teams = json.load(f)
                 if len(teams) == 0:
                     input("\n\033[31m[ No teams configured yet ]\033[0m")
                     continue
@@ -472,10 +474,6 @@ try:
             except:
                 continue
         if menuindex == 3:
-            with open(PATHS.characters) as f:
-                characters = json.load(f)
-            with open(PATHS.relics) as f:
-                relics = json.load(f)
             print("\033c\033[7m Select List Mode                 >\033[0m\n\n[1] - All\n[2] - Only already set")
             try:
                 lm = int(input("> "))
@@ -611,10 +609,6 @@ try:
                 json.dump(relics,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 4:
-            with open(PATHS.teams) as f:
-                teams = json.load(f)
-            with open(PATHS.characters) as f:
-                characters = json.load(f)
             if len(teams) == 0:
                 print("\n\033[38;5;240m[ No teams ]\033[0m")
             else:
@@ -735,8 +729,6 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            with open(PATHS.breakpoints) as f:
-                breakpoints = json.load(f)
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
@@ -763,8 +755,6 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            with open(PATHS.breakpoints) as f:
-                breakpoints = json.load(f)
             if not target in breakpoints.keys():
                 input(f"\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
