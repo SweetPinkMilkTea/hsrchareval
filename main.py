@@ -10,7 +10,8 @@ from bs4 import BeautifulSoup
 import requests
 
 # Own File Imports
-import reliccom
+from util_functions import reliccom
+from util_functions import charcom
 
 # Constants
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]

@@ -49,6 +49,5 @@ def validate(rawdata):
         return {"success": True,"message": "OK"}
 
 # targets: Info about correct Main Stats and prioritized Subs
-# stats: relevant base values to compare flat and percent stats
-def analyse(relics, targets, stats):
+def analyse(relics, targets):
     return 0
