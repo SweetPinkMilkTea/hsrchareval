@@ -175,7 +175,7 @@ try:
                 continue
             x = int(x)-1
             target = charlist[x]
-            print(f"\n\033[1m{target.upper()}\n\n\033[38;5;240mAttributes\n\033[0m\033[7m ATTRIBUTE    | COMP                        | SCORE   |\033[0m\n              |                             |         |")
+            print(f"\n\033[1m{target.upper()}\n\n\033[0m\033[38;5;240mAttributes\n\033[0m\033[7m ATTRIBUTE    | COMP                        | SCORE   |\033[0m\n              |                             |         |")
             for attrKey in characterEval[target]["stats"]["attributes"]:
                 current = characterEval[target]["stats"]["attributes"][attrKey]["current"]
                 bridgevalue = characterEval[target]["stats"]["attributes"][attrKey]["bridge"]
@@ -224,14 +224,37 @@ try:
                 vd = len(ansi_escape.sub('', display))
                 vd2 = len(ansi_escape.sub('', score))
                 print(f" {attrKey.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(7-vd2)}\033[0m |")
-            print("\n")
             score = characterEval[target]["stats"]["score"]
             acc = characterEval[target]["stats"]["accuracy"]
             if score >= 100000:
-                print(f"Attribute Score: \033[7m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(acc):,}% acc)")
+                print(f"\nAttribute Score: \033[7m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(acc):,}% acc)")
             else:
-                print(f"Attribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
-            print(characterEval[target]["relics"])
+                print(f"\nAttribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
+            #print(characterEval[target]["relics"])
+            print(f"\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    |                             |         |         |")
+            relicData = characterEval[target]["relics"]
+            index = 1
+            for relic in relicData["relics"]:
+                score = f"{relic["score"]:,}"
+                mainAffix = relic["main"]
+                col = rankcolor[gradescan(rankcutoffs_relic, relic["score"])]
+                print(f"\033[7;38;5;{col}m {index:02d} | {mainAffix['key'].upper().ljust(27)} | {score.ljust(7)} |   ---   |\033[0m")
+                for sub in relic["sub"]:
+                    key = sub["key"].upper()
+                    value = sub["value"]
+                    count = sub["count"]
+                    score = f"{sub["score"]:,}"
+                    saturation = f"{round(sub["saturation"]*100,2):,}"
+                    countIndicator = f" [x{count - 1}]" if count > 1 else ""
+                    statString = f"{key}: {value}{countIndicator}"
+                    if sub["score"] > 0:
+                        print(f"    | {statString.ljust(27)} | {score.ljust(7)} | {saturation.ljust(7)} |")
+                    else:
+                        print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
+                index += 1
+                print("    |                             |         |         |")
+            col = rankcolor[gradescan(rankcutoffs_relic, relic["score"])]
+            print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
