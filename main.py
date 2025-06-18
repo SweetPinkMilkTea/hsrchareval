@@ -379,7 +379,6 @@ try:
             if target in characters.keys():
                 lastdata = characters[target]
                 comp_mode = True
-            characters[target] = {}
             try:
                 if uid != "0":
                     api_name = api_name_mapping.get(target,target)
@@ -430,8 +429,13 @@ try:
                 print("Couldn't load from profile because of network issues. Continue entering manually.\n")
                 api_attr = {}
                 relicstatus = {"success":False, "message":"No connection"}
+            except KeyboardInterrupt:
+                continue
             print("\033[0m", end="")
-            old_temp = characters[target]
+            try:
+                old_temp = characters[target]
+            except KeyError:
+                old_temp = None
             characters[target] = {}
             try:
                 for attribute in coreAttributes:
@@ -462,11 +466,17 @@ try:
                             print("\033[0m",end="")
                         characters[target][attribute] = valueInput
             except KeyboardInterrupt:
-                characters[target] = old_temp
+                if not old_temp is None:
+                    characters[target] = old_temp
+                else:
+                    del characters[target]
                 continue
             except:
                 input("\n\033[31m[ An Error occured and character data was reverted. ]\033[0m")
-                characters[target] = old_temp
+                if not old_temp is None:
+                    characters[target] = old_temp
+                else:
+                    del characters[target]
                 continue
             if relicstatus["success"]:
                 relics[target]["equipment"] = api_relic
