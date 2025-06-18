@@ -1,3 +1,5 @@
+from collections import Counter
+
 # Arrays: [0] is minimum, [1] maximum; per roll
 roll_dist = {
     "hp": [33, 42],
@@ -6,17 +8,18 @@ roll_dist = {
     "hp%": [3.4, 4.4],
     "atk%": [3.4, 4.4],
     "def%": [4.3, 5.4],
-    "crit_rate": [2.5, 3.2],
-    "crit_dmg": [5.1, 6.5],
-    "effect_hit": [3.4, 4.3],
-    "effect_res": [3.4, 4.3],
-    "break_effect": [5.1, 6.5],
+    "crit rate": [2.5, 3.2],
+    "crit dmg": [5.1, 6.5],
+    "effect hit": [3.4, 4.3],
+    "effect res": [3.4, 4.3],
+    "break effect": [5.1, 6.5],
     "spd": [2, 2.6]
 }
 
 def extract(rawdata):
     exp = []
     set_ids = {}
+    keymap = {"break dmg":"break effect","sp rate":"energy regen"}
     for relic in rawdata:
         current = {}
         # set id
@@ -24,11 +27,14 @@ def extract(rawdata):
             set_ids[relic["set_id"]] = chr(65+len(list(set_ids.keys())))
         current["set"] = set_ids[relic["set_id"]]
         # main stat
-        current["main"] = {"key":relic["main_affix"]["field"]}
+        key = relic["main_affix"]["field"].replace("_", " ")
+        key = keymap.get(key, key)
+        current["main"] = {"key":key}
         # sub stats
         current["sub"] = []
         for substat in relic["sub_affix"]:
-            key = substat["field"]
+            key = substat["field"].replace("_", " ")
+            key = keymap.get(key, key)
             if key in ["atk", "def", "hp"] and substat["percent"]:
                 key += "%"
             value = round(substat["value"] * 100 if substat["percent"] else substat["value"],2)
@@ -37,7 +43,6 @@ def extract(rawdata):
         exp.append(current)
     return exp
     
-
 def validate(rawdata):
     try:
         assert len([x for x in rawdata if x["level"] == 15]) == 6
@@ -49,5 +54,92 @@ def validate(rawdata):
         return {"success": True,"message": "OK"}
 
 # targets: Info about correct Main Stats and prioritized Subs
-def analyse(relics, targets):
-    return 0
+def analyse(relics: list, targets: dict):
+    result = {
+        "relics":[],
+        "fullscore": 0,
+        "flags":
+            {
+            "setfaults": 0,
+            "mainfaults": 0
+            }
+    }
+        
+    # Check Set config
+    set_faults = 0
+    setarray = [piece["set"] for piece in relics]
+    counter = Counter(setarray)
+    for count in counter.values():
+        if count not in (2, 4):
+            set_faults += 1
+    result["flags"]["setfaults"] = set_faults
+    
+    pieceindex = 0
+    for piece in relics:
+        # Check Main Stats
+        mainkey = piece["main"]["key"]
+        mainstattargets = ["hp","atk"] + targets["main"]
+        targetkey = mainstattargets[pieceindex]
+        
+        main_fault = mainkey != targetkey
+        low_fault_impact = (mainkey.endswith("dmg") or mainkey.endswith("atk")) and (targetkey.endswith("dmg") or targetkey.endswith("atk")) 
+        
+        ev_mainstat = {"key": mainkey, "target": targetkey}
+        
+        # Check Subs and calc score
+        minus_one_roll = sum([x["count"] for x in piece["sub"]]) < 9
+        
+        substatprio = targets["sub"]
+        flatstattriggers = [x.replace("%","") for x in substatprio.keys() if x.endswith("%")]
+        
+        ev_substats = []
+        substatscores = []
+        for substat in piece["sub"]:
+            key = substat["key"]
+            value = substat["value"]
+            count = substat["count"]
+            
+            if key in substatprio or key in flatstattriggers:
+                distibution = roll_dist[key]
+                avg_roll = value / count
+                saturation = (avg_roll - distibution[0]) / (distibution[1] - distibution[0])
+                priokey = key + "%" if key in flatstattriggers else key
+                weight = 0.8 + (0.2 / substatprio[priokey])
+                if key in flatstattriggers:
+                    weight *= 0.4
+            else:
+                saturation = 0
+                weight = 0
+            
+            score = round(100 * (0.8 + (0.2 * saturation)) * weight, 2)
+            
+            ev_substats.append({"key":key,"value":value,"count":count,"score":score,"saturation":saturation,"weight":weight})
+            for i in range(count):
+                substatscores.append(score)
+        
+        if minus_one_roll:
+            substatscores.append(0)        
+        
+        # Finalize Score
+        score = sum([x for x in substatscores]) / len(substatscores)
+        if main_fault:
+            score *= 0.2 if low_fault_impact else 0.9
+        score = round(score, 2)
+        
+        # Assemble and continue
+        result["relics"].append({
+            "score":score,
+            "main":ev_mainstat,
+            "sub":ev_substats,
+            "flags": {
+                "minusone": minus_one_roll,
+                "mainfault": main_fault
+            }
+            })
+        pieceindex += 1
+    
+    # Calculate overall score
+    scorearray = [x["score"] for x in result["relics"]]
+    result["fullscore"] = round((sum(scorearray) / len(scorearray)), 2)
+    
+    return result

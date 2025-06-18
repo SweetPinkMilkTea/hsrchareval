@@ -1,10 +1,9 @@
-import platform
+from pathlib import Path
 import re
 import shutil
 import json, time, os, traceback
-from pathlib import Path
 from copy import deepcopy as dcp
-import subprocess
+
 
 from bs4 import BeautifulSoup
 import requests
@@ -12,40 +11,19 @@ import requests
 # Own File Imports
 from util_functions import reliccom
 from util_functions import charcom
+from util_functions import configutil
 
 # Constants
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
-supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg"]
+supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res"]
 
 rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"197","X":"200"}
+rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
+rankcutoffs_relic = {50:"D",70:"C",80:"B",85:"A",90:"S",95:"SS", 99:"U", 100:"X"}
 
-def get_app_data_path(app_name="HSRCharEval"):
-    if platform.system() == "Windows":
-        return Path(os.getenv('LOCALAPPDATA')) / app_name
-    elif platform.system() == "Darwin":  # macOS
-        return Path.home() / "Library" / "Application Support" / app_name
-    else:  # Linux
-        return Path.home() / f".{app_name.lower()}"
-    
-def open_file_explorer(path):
-    system = platform.system()
-    try:
-        if system == "Windows":
-            os.startfile(path)
-        elif system == "Darwin":
-            subprocess.run(["open", path], check=True)
-        elif system == "Linux":
-            if "DISPLAY" in os.environ:
-                subprocess.run(["xdg-open", path], check=True)
-            else:
-                raise EnvironmentError("No GUI environment detected (missing DISPLAY)")
-        else:
-            raise NotImplementedError(f"Unsupported OS: {system}")
-    except Exception as e:
-        print(f"Could not open file explorer: {e}")
-
-def timespan(ts):
+def timespan(ts: int):
+    "Returns a string with relative time, calculated with a UNIX timestamp."
     now = time.time()
     diff = int(now - ts)
 
@@ -69,155 +47,47 @@ def timespan(ts):
 
     return "just now"
 
-def attributeScore(key, metric, target, isInverse):
-    # Logic on Inverse
-    if isInverse:
-        score = 100000 if metric < target else 0
-    else:
-        # Setup of lower bound (Score 0)
-        lower = target / 2
-        if key == "spd" and target > 95:
-            lower = (95 + target) / 2
-        if key == "energy regen":
-            lower = (100 + target) / 2
-        # Score calculation
-        if metric < target:
-            # Get score for non fulfilled target
-            score = (metric - lower) / (target - lower) * 100000
+def gradescan(list: dict, mark: float):
+    "Returns a rank based on a supplied dict."
+    grade = "F"
+    for cutoff in list:
+        if mark >= cutoff:
+            grade = list[cutoff]
         else:
-            # Calculated bonus if score exceeds target
-            diff = metric - target
-            score = 100000
-            if key in ["hp","atk","def"]:
-                score += int(diff / 10)
-            if key in ["crit rate"]:
-                score += int(diff)
-            if key in ["crit dmg","break effect","effect hit"]:
-                score += int(diff / 2)
-            if key in ["energy regen", "spd"]:
-                score += int(diff * 2)
-    if score < 0:
-        score = 0
-    return score
-
-APP_DATA_DIR = get_app_data_path()
-APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-# Paths
-class PATHS:
-    uid = APP_DATA_DIR / ".uid"
-    characters = APP_DATA_DIR / "chardata.json"
-    breakpoints = APP_DATA_DIR / "breakpoints.json"
-    teams = APP_DATA_DIR / "teamdata.json"
-    bridgedata = APP_DATA_DIR / "bridgedata.json"
-    importignore = APP_DATA_DIR / "importignore.json"
-    api_name_map = APP_DATA_DIR / "apinamemap.json"
-    relics = APP_DATA_DIR / "relics.json"
+            break
+    return grade
 
 try:
     # Setup
-    if not PATHS.uid.exists():
-        with open(PATHS.uid,"w") as f:
-            f.write("0")
-    if not PATHS.characters.exists():
-        with open(PATHS.characters,"w") as f:
-            json.dump({},f)
-    if not PATHS.breakpoints.exists():
-        with open(PATHS.breakpoints,"w") as f:
-            json.dump({},f)
-    if not PATHS.teams.exists():
-        with open(PATHS.teams,"w") as f:
-            json.dump({},f)
-    if not PATHS.bridgedata.exists():
-        with open(PATHS.bridgedata,"w") as f:
-            json.dump({},f)
-    if not PATHS.importignore.exists():
-        with open(PATHS.importignore,"w") as f:
-            json.dump({"keys":[]},f)
-    if not PATHS.api_name_map.exists():
-        with open(PATHS.api_name_map,"w") as f:
-            json.dump({},f)
-    if not PATHS.relics.exists():
-        with open(PATHS.relics,"w") as f:
-            json.dump({},f)
-
-    with open(PATHS.breakpoints) as f:
+    configutil.filesetup()
+            
+    with open(configutil.PATHS.characters) as f:
+        characters = json.load(f)
+    with open(configutil.PATHS.relics) as f:
+        relics = json.load(f)
+    with open(configutil.PATHS.teams) as f:
+        teams = json.load(f)
+    with open(configutil.PATHS.breakpoints) as f:
         breakpoints = json.load(f)
-        for i in breakpoints:
-            if not "inverse" in breakpoints[i].keys():
-                breakpoints[i]["inverse"] = []
-
-    with open(PATHS.bridgedata) as f:
+    with open(configutil.PATHS.bridgedata) as f:
         bridgedata = json.load(f)
-    for i in breakpoints:
-        if i not in bridgedata:
-            bridgedata[i] = {}
 
-    with open(PATHS.uid) as f:
+    with open(configutil.PATHS.uid) as f:
         uid = f.read()
         
-    with open(PATHS.api_name_map) as f:
+    with open(configutil.PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
 
     if len(breakpoints) == 0:
-        while True:
-            print("\033c\033[7m First-Run Setup               >\033[0m")
-            print("\nImport all available characters to create breakpoint templates?\n\n\033[38;5;240m0: No / 1: Yes.\033[0m")
-            index = input("\n> ").strip()
-            if index.isdigit():
-                break
-        if index == "1":
-            try:
-                with open(PATHS.importignore) as f:
-                    ignore = json.load(f)
-                creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
-                response = requests.get("https://www.prydwen.gg/star-rail/characters")
-                response.raise_for_status()
-                main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
-                entryindex = len(main)
-                for object in main:
-                    objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                    if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
-                        entryindex -= 1
-                print(f"Expecting {entryindex} entries.")
-                print("1: Change name / 2: Accept name")
-                for object in main:
-                    target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                    if target not in breakpoints.keys() and target not in ignore["keys"]:
-                        while True:
-                            index = input(f"{target.upper()} >> ")
-                            if index.isdigit():
-                                if int(index) <= 2 and int(index) >= 0:
-                                    index = int(index)
-                                    break
-                        if index == 0:
-                            ignore["keys"].append(target)
-                        elif index == 1:
-                            ignore["keys"].append(target)
-                            target = input("Enter new ID: ").lower()
-                            breakpoints[target] = creation_template
-                        elif index == 2:
-                            breakpoints[target] = creation_template
-                with open(PATHS.importignore,"w") as f:
-                    json.dump(ignore,f)
-                with open(PATHS.breakpoints) as f:
-                    json.dump(breakpoints,f)
-                input("\n\033[38;5;40m[ Done. ]\033[0m")
-            except requests.exceptions.RequestException as e:
-                input("\n\033[31m[ Request has failed. Are you offline? ]\033[0m")
-            except KeyboardInterrupt:
-                input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
-                raise KeyboardInterrupt()
-            except Exception as e:
-                input(f"\n\033[31m[ {e} ]\033[0m")
-
+        configutil.first_run_import()
+        
     if uid == "0":
         while True:
             print("\033c\033[7m Quick-Import Setup               >\033[0m")
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
-                with open(PATHS.uid,"w") as f:
+                with open(configutil.PATHS.uid,"w") as f:
                     f.write(str(uid))
                 break
 
@@ -231,14 +101,6 @@ try:
         isOffline = False
 
     
-    with open(PATHS.characters) as f:
-        characters = json.load(f)
-    with open(PATHS.relics) as f:
-        relics = json.load(f)
-    with open(PATHS.teams) as f:
-        teams = json.load(f)
-    with open(PATHS.breakpoints) as f:
-        breakpoints = json.load(f)
 
     while True:
         print("\033c\033[1mHSR Character Build Rater\033[0m")
@@ -265,42 +127,34 @@ try:
                 input("\n\033[31m[ No characters added yet ]\033[0m")
                 continue
             namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
-            print(f"\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
+            print("\033cLoading, please wait a moment...")
+            characterEval = {}
+            for character in characters:
+                ev_stats = characters[character]
+                ev_breakpoints = breakpoints[character]
+                ev_bridges = bridgedata[character]
+                try:
+                    ev_relics = relics[character]["equipment"]
+                    ev_prio = relics[character]["prio"]
+                    if ev_relics == {}:
+                        raise ValueError("No relics")
+                except (KeyError, ValueError):
+                    ev_relics = None
+                    ev_prio = None
+                characterEval[character] = charcom.analyseChar(ev_breakpoints, ev_stats, ev_bridges, ev_relics, ev_prio)
+            print(f"\033c\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
             index = 1
-            for target in sorted(list(characters.keys())):
-                allscore = []
-                allratio = []
-                inverse = breakpoints[target]["inverse"]
-                for attribute in characters[target]:
-                    if attribute != "updated":
-                        value1 = float(characters[target][attribute]) + bridgedata.get(target,{}).get(attribute,0)
-                        value2 = float(breakpoints[target][attribute])
-                        value1 = int(value1) if value1.is_integer() else value1
-                        value2 = int(value2) if value2.is_integer() else value2
-                        ratio = 2*value1/value2-1
-                        if ratio < 0:
-                            ratio = 0
-                        if ratio > 1:
-                            ratio = 1
-                        score = attributeScore(attribute, value1, value2, attribute in inverse)
-                        if score >= 100000:
-                            ratio = 1
-                        allscore.append(score)
-                        allratio.append(ratio)
-                score = int((sum(allscore) + min(allscore)*5)/(len(allscore)+5))
+            # Note: Can make custom sorted Character Lists later
+            charlist = sorted(list(characters.keys()))
+            for target in charlist:
+                score = characterEval[target]["stats"]["score"]
                 if score > 100000:
                     score = f"X-{score-100000:,}"
                 else:
                     score = f"{score:,}"
-                r_acc = round(sum(allratio*100)/len(allratio),2)
+                r_acc = characterEval[target]["stats"]["accuracy"]
                 acc = f"{r_acc:,}%"
-                grade = "F"
-                gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
-                for i in gradelist:
-                    if r_acc >= i:
-                        grade = gradelist[i]
-                    else:
-                        break
+                grade = gradescan(rankcutoffs_score, r_acc)
                 highlight = "7;" if score[0] == "X" else ""
                 sp = ["",""]
                 sp[1 if score[0] == "X" else 0] = " "
@@ -320,69 +174,64 @@ try:
                 input("\n\033[31m[ Not an index ]\033[0m")
                 continue
             x = int(x)-1
-            print(f"\n\033[3;38;5;240m{sorted(list(characters.keys()))[x].upper()}\n\033[0m\033[7m ATTR         | COMP                        | SCORE   |\033[0m\n              |                             |         |")
-            allscore = []
-            allratio = []
-            inverse = breakpoints[sorted(list(characters.keys()))[x]]["inverse"]
-            for i in characters[sorted(list(characters.keys()))[x]]:
-                if i != "updated":
-                    bridgevalue = bridgedata[sorted(list(characters.keys()))[x]].get(i,0)
-                    value1 = float(characters[sorted(list(characters.keys()))[x]][i]) + bridgevalue
-                    value2 = float(breakpoints[sorted(list(characters.keys()))[x]][i])
-                    value1 = int(value1) if value1.is_integer() else value1
-                    value2 = int(value2) if value2.is_integer() else value2
-                    ratio = 2*value1/value2-1
-                    if ratio < 0:
-                        ratio = 0
-                    if ratio > 1:
-                        ratio = 1
-                    score = attributeScore(i, value1, value2, i in inverse)
-                    if score >= 100000:
-                        ratio = 1
-                    allscore.append(score)
-                    allratio.append(ratio)
-                    xvalue1 = f"{value1:,}"
-                    xvalue2 = f"{value2:,}"
-                    if score <= 100000:
-                        score = f"{int(score):,}"
-                    else:
-                        score = f"\033[7;38;5;171m X-{int(score)-100000:,}"
-                    #196 red
-                    #202 orange
-                    #220 yellow
-                    #40 green
-                    colorcode = [40,220,202,196]
-                    col_index = 0
-                    if i in inverse:
-                        comp_symbol = "<"
-                        if value1 > value2:
-                            col_index += 3
-                    else:
-                        comp_symbol = "/"
-                        if value1 < value2:
-                            col_index += 1
-                        if value1 < (value2 - value2/10):
-                            col_index += 1
-                        if value1 < (value2 - value2/5):
-                            col_index += 1
-                    usesBridge = False
-                    if bridgevalue == 0:
-                        display = f"{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2}"
-                    else:
-                        display = f"{round(value1 - bridgevalue,1):,} + {round(bridgevalue,1):,}\033[38;5;240m {comp_symbol} {xvalue2}"
-                        usesBridge = True
-                    ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
-                    vd = len(ansi_escape.sub('', display))
-                    vd2 = len(ansi_escape.sub('', score))
-                    print(f" {i.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(7-vd2)}\033[0m |")
+            target = charlist[x]
+            print(f"\n\033[1m{target.upper()}\n\n\033[38;5;240mAttributes\n\033[0m\033[7m ATTRIBUTE    | COMP                        | SCORE   |\033[0m\n              |                             |         |")
+            for attrKey in characterEval[target]["stats"]["attributes"]:
+                current = characterEval[target]["stats"]["attributes"][attrKey]["current"]
+                bridgevalue = characterEval[target]["stats"]["attributes"][attrKey]["bridge"]
+                goal = characterEval[target]["stats"]["attributes"][attrKey]["goal"]
+                isInverse = characterEval[target]["stats"]["attributes"][attrKey]["isInverse"]
+                current = int(current) if current.is_integer() else current
+                goal = int(goal) if goal.is_integer() else goal
+                ratio = 2*current/goal-1
+                if ratio < 0:
+                    ratio = 0
+                if ratio > 1:
+                    ratio = 1
+                score = characterEval[target]["stats"]["attributes"][attrKey]["score"]
+                if score >= 100000:
+                    ratio = 1
+                display_current = f"{current:,}"
+                display_goal = f"{goal:,}"
+                if score <= 100000:
+                    score = f"{int(score):,}"
+                else:
+                    score = f"\033[7m X-{int(score)-100000:,}"
+                #196 red
+                #202 orange
+                #220 yellow
+                #40 green
+                colorcode = [40,220,202,196]
+                col_index = 0
+                if isInverse:
+                    comp_symbol = "<"
+                    if current > goal:
+                        col_index += 3
+                else:
+                    comp_symbol = "/"
+                    if current < goal:
+                        col_index += 1
+                    if current < (goal - goal/10):
+                        col_index += 1
+                    if current < (goal - goal/5):
+                        col_index += 1
+                if not bridgevalue:
+                    display = f"{display_current}\033[38;5;240m {comp_symbol} {display_goal}"
+                else:
+                    display = f"{round(current - bridgevalue,1):,} + {round(bridgevalue,1):,}\033[38;5;240m {comp_symbol} {display_goal}"
+                    usesBridge = True
+                ansi_escape = re.compile(r'\x1B\[[0-9;]*m')
+                vd = len(ansi_escape.sub('', display))
+                vd2 = len(ansi_escape.sub('', score))
+                print(f" {attrKey.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{display}{' '*(28-vd)}\033[0m| {score}{' '*(7-vd2)}\033[0m |")
             print("\n")
-            score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
+            score = characterEval[target]["stats"]["score"]
+            acc = characterEval[target]["stats"]["accuracy"]
             if score >= 100000:
-                print(f"Total scoring: \033[7;38;5;171m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+                print(f"Attribute Score: \033[7m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(acc):,}% acc)")
             else:
-                print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
-            if usesBridge:
-                print("\n[i] Bridges for this character are set and visible above.")
+                print(f"Attribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
+            print(characterEval[target]["relics"])
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
@@ -413,20 +262,14 @@ try:
                                     ratio = 0
                                 if ratio > 1:
                                     ratio = 1
-                                score = attributeScore(i, value1, value2, i in inverse)
+                                score = charcom.attributeScore(i, value1, value2, i in inverse)
                                 if score >= 100000:
                                     ratio = 1
                                 allscore.append(score)
                                 allratio.append(ratio)
                         cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
                         cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
-                        grade = "F"
-                        gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
-                        for i in [50,70,80,90,95,100]:
-                            if cumulativeratio[-1] >= i:
-                                grade = gradelist[i]
-                            else:
-                                break
+                        grade = gradescan(rankcutoffs_score, cumulativeratio[-1])
                         rank_str += grade
                         team_content.append({"name":ii,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
                     score = int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5))
@@ -436,13 +279,7 @@ try:
                         score = f"{score:,}"
                     r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                     acc = f"{r_acc:,}%"
-                    grade = "F"
-                    gradelist = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"S+"}
-                    for i in [50,70,80,90,95,100]:
-                        if r_acc >= i:
-                            grade = gradelist[i]
-                        else:
-                            break
+                    grade = gradescan(rankcutoffs_score, r_acc)
                     print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{rankcolor[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                     teams_condense.append(team_content)
                     index += 1
@@ -546,9 +383,12 @@ try:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
                         
-                        relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
-                        if relicstatus["success"]:
-                            api_relic = reliccom.extract(api_data["characters"][index]["relics"])
+                        if target in relics:
+                            relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
+                            if relicstatus["success"]:
+                                api_relic = reliccom.extract(api_data["characters"][index]["relics"])
+                        else:
+                            relicstatus = {"success": False, "message": "No relic information provided (Use Breakpoints)"}
                         
                         print("API Data found!")
                         print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
@@ -607,9 +447,9 @@ try:
                 relics[target]["base_values"] = {k: v for k, v in api_attr.items() if k.startswith('base')}
                 print("\nRelics successfully set.")
             characters[target]["updated"] = int(time.time())
-            with open(PATHS.characters,"w") as f:
+            with open(configutil.PATHS.characters,"w") as f:
                 json.dump(characters,f)
-            with open(PATHS.relics,"w") as f:
+            with open(configutil.PATHS.relics,"w") as f:
                 json.dump(relics,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 4:
@@ -657,7 +497,7 @@ try:
             if not team_ok:
                 continue
             teams[target] = char_target
-            with open(PATHS.teams,"w") as f:
+            with open(configutil.PATHS.teams,"w") as f:
                 json.dump(teams,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         if menuindex == 5:
@@ -724,32 +564,32 @@ try:
                 for group in priority_groups:
                     attrs = [attr.strip() for attr in group.split("=")]
                     for attr in attrs:
-                        if attr not in coreAttributes + ["atk%","def%","hp%"]:
+                        if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
                             raise ValueError(f"Invalid attribute supplied: '{attr}'")
                     for attr in attrs:
                         prio_dict[attr] = current_rank
                     current_rank += 1
                 relics[target]["prio"]["sub"] = prio_dict
 
-                with open(PATHS.bridgedata) as f:
+                with open(configutil.PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
                 for i in breakpoints:
                     if i not in bridgedata:
                         bridgedata[i] = {}
 
-                with open(PATHS.characters,"r") as f:
+                with open(configutil.PATHS.characters,"r") as f:
                     characters = json.load(f)
 
                 if [key for key, value in breakpoints[target].items() if value == -1 and not key in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and not key in coreAttributes] and target in characters:
                     print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
                     del characters[target]
-                    with open(PATHS.characters,"w") as f:
+                    with open(configutil.PATHS.characters,"w") as f:
                         json.dump(characters,f)
-                with open(PATHS.breakpoints,"w") as f:
+                with open(configutil.PATHS.breakpoints,"w") as f:
                     json.dump(breakpoints,f)
-                with open(PATHS.bridgedata,"w") as f:
+                with open(configutil.PATHS.bridgedata,"w") as f:
                     json.dump(bridgedata,f)
-                with open(PATHS.relics,"w") as f:
+                with open(configutil.PATHS.relics,"w") as f:
                     json.dump(relics,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except ValueError as e:
@@ -781,7 +621,7 @@ try:
                 x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m").replace(",",".")
                 print("\033[0m",end="")
                 bridgedata[target][key] = float(x)
-                with open(PATHS.bridgedata,"w") as f:
+                with open(configutil.PATHS.bridgedata,"w") as f:
                     json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except:
@@ -826,7 +666,7 @@ try:
                     ratio = 0
                 if ratio > 1:
                     ratio = 1
-                score = attributeScore(attribute, value1, value2, attribute in inverse)
+                score = charcom.attributeScore(attribute, value1, value2, attribute in inverse)
                 if score >= 100000:
                     ratio = 1
                 allscore.append(score)
@@ -873,7 +713,7 @@ try:
                 continue
             if lm == 1:
                 try:
-                    with open(PATHS.importignore) as f:
+                    with open(configutil.PATHS.importignore) as f:
                         ignore = json.load(f)
                     creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
                     response = requests.get("https://www.prydwen.gg/star-rail/characters")
@@ -909,9 +749,9 @@ try:
                                 breakpoints[target] = creation_template
                             elif index == 2:
                                 breakpoints[target] = creation_template
-                    with open(PATHS.importignore,"w") as f:
+                    with open(configutil.PATHS.importignore,"w") as f:
                         json.dump(ignore,f)
-                    with open(PATHS.breakpoints,"w") as f:
+                    with open(configutil.PATHS.breakpoints,"w") as f:
                         json.dump(breakpoints,f)
                     input("\n\033[38;5;40m[ Done. ]\033[0m")
                 except requests.exceptions.RequestException as e:
@@ -927,7 +767,7 @@ try:
                     while True:
                         uid = input("> ").strip()
                         if uid.isdigit():
-                            with open(PATHS.uid,"w") as f:
+                            with open(configutil.PATHS.uid,"w") as f:
                                 f.write(str(uid))
                             break
                 except:
@@ -1002,7 +842,7 @@ try:
                                 except:
                                     continue
                                 api_name_mapping[syn[0]] = syn[1]
-                                with open(PATHS.api_name_map,"w") as f:
+                                with open(configutil.PATHS.api_name_map,"w") as f:
                                     json.dump(api_name_mapping,f)
                                 input("\n\033[38;5;40m[ Done. ]\033[0m")
                                 continue
@@ -1019,7 +859,7 @@ try:
                                     input("\n\033[31m[ Index is out of range ]\033[0m")
                                     continue
                                 del api_name_mapping[list(api_name_mapping.keys())[syn]]
-                                with open(PATHS.api_name_map,"w") as f:
+                                with open(configutil.PATHS.api_name_map,"w") as f:
                                     json.dump(api_name_mapping,f)
                                 input("\n\033[38;5;40m[ Done. ]\033[0m")
                                 continue
@@ -1028,13 +868,13 @@ try:
                         except KeyboardInterrupt:
                             break
             elif lm == 4:
-                with open(PATHS.characters) as f:
+                with open(configutil.PATHS.characters) as f:
                     characters = json.load(f)
-                with open(PATHS.breakpoints) as f:
+                with open(configutil.PATHS.breakpoints) as f:
                     breakpoints = json.load(f)
-                with open(PATHS.bridgedata) as f:
+                with open(configutil.PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
-                with open(PATHS.teams) as f:
+                with open(configutil.PATHS.teams) as f:
                     teams = json.load(f)
                 print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Create a backup\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
                 try:
@@ -1044,7 +884,7 @@ try:
                 except:
                     continue
                 if lm == 1:
-                    shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', APP_DATA_DIR)
+                    shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
                     input(f"\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
                 if lm == 2:
                     target = input("Target Name:").strip().lower()
@@ -1058,13 +898,13 @@ try:
                                 tbr = team
                         if tbr:
                             del teams[tbr]
-                        with open(PATHS.characters, "w") as f:
+                        with open(configutil.PATHS.characters, "w") as f:
                              json.dump(characters, f)
-                        with open(PATHS.breakpoints, "w") as f:
+                        with open(configutil.PATHS.breakpoints, "w") as f:
                              json.dump(breakpoints, f)
-                        with open(PATHS.bridgedata, "w") as f:
+                        with open(configutil.PATHS.bridgedata, "w") as f:
                              json.dump(bridgedata, f)
-                        with open(PATHS.teams, "w") as f:
+                        with open(configutil.PATHS.teams, "w") as f:
                              json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
@@ -1082,13 +922,13 @@ try:
                                 tbr = teams[team]
                         if tbr:
                             del tbr
-                        with open(PATHS.characters, "w") as f:
+                        with open(configutil.PATHS.characters, "w") as f:
                              json.dump(characters, f)
-                        with open(PATHS.breakpoints, "w") as f:
+                        with open(configutil.PATHS.breakpoints, "w") as f:
                              json.dump(breakpoints, f)
-                        with open(PATHS.bridgedata, "w") as f:
+                        with open(configutil.PATHS.bridgedata, "w") as f:
                              json.dump(bridgedata, f)
-                        with open(PATHS.teams, "w") as f:
+                        with open(configutil.PATHS.teams, "w") as f:
                              json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
@@ -1097,11 +937,11 @@ try:
                     target = input("Target Name:").strip().lower()
                     if target in bridgedata:
                         bridgedata[target] = {}
-                        with open(PATHS.characters, "w") as f:
+                        with open(configutil.PATHS.characters, "w") as f:
                              json.dump(characters, f)
-                        with open(PATHS.breakpoints, "w") as f:
+                        with open(configutil.PATHS.breakpoints, "w") as f:
                              json.dump(breakpoints, f)
-                        with open(PATHS.bridgedata, "w") as f:
+                        with open(configutil.PATHS.bridgedata, "w") as f:
                              json.dump(bridgedata, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
@@ -1110,7 +950,7 @@ try:
                     target = input("Target Name:").strip().lower()
                     if target in teams:
                         del teams[target]
-                        with open(PATHS.teams, "w") as f:
+                        with open(configutil.PATHS.teams, "w") as f:
                              json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
@@ -1119,7 +959,7 @@ try:
                     print("\033c\033[31;7m !!!                   >\033[0m\n\n\033[31mAre you SURE that you want to wipe all data?\nIf yes, type 'CONFIRM' to continue.")
                     if input("\n> ") != "CONFIRM":
                         continue
-                    folder = get_app_data_path()
+                    folder = configutil.get_app_data_path()
                     for filename in os.listdir(folder):
                         file_path = os.path.join(folder, filename)
                         try:
@@ -1131,7 +971,7 @@ try:
                             raise Exception(f"\033[31m\nFailed to delete {file_path} ({e}).\nTry to delete the offending data yourself.\033[0m")
                     raise Exception(f"Reset complete. Start the program again to start fresh.")
                 if lm == 0:
-                    open_file_explorer(get_app_data_path())
+                    configutil.open_file_explorer(configutil.get_app_data_path())
                     input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
