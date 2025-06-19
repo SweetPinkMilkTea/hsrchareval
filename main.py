@@ -245,7 +245,7 @@ try:
                         key = sub["key"].upper()
                         value = sub["value"]
                         count = sub["count"]
-                        score = f"{sub["score"]:,}"
+                        score = f"{sub['score']:,}"
                         saturation = f"{round(sub["saturation"]*100,2):,}"
                         countIndicator = f" [+{count - 1}]" if count > 1 else ""
                         statString = f"{key}: {value}{countIndicator}"
