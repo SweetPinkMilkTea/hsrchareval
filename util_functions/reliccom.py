@@ -19,7 +19,7 @@ roll_dist = {
 def extract(rawdata):
     exp = []
     set_ids = {}
-    keymap = {"break dmg":"break effect","sp rate":"energy regen"}
+    keymap = {"break dmg":"break effect","sp rate":"energy regen", "heal rate":"heal boost"}
     for relic in rawdata:
         current = {}
         # set id
@@ -82,7 +82,10 @@ def analyse(relics: list, targets: dict):
         targetkey = mainstattargets[pieceindex]
         
         main_fault = mainkey != targetkey
-        low_fault_impact = (mainkey.endswith("dmg") or mainkey.endswith("atk")) and (targetkey.endswith("dmg") or targetkey.endswith("atk")) 
+        low_fault_impact = (mainkey.endswith("dmg") or mainkey.endswith("atk")) and (targetkey.endswith("dmg") or targetkey.endswith("atk"))
+        
+        if main_fault:
+            result["flags"]["mainfaults"] += 1 
         
         ev_mainstat = {"key": mainkey, "target": targetkey}
         

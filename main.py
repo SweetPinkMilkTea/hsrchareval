@@ -16,7 +16,7 @@ from util_functions import configutil
 # Constants
 coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break effect", "effect hit", "energy regen"]
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
-supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res"]
+supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res", "heal boost"]
 
 rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"197","X":"200"}
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
@@ -237,9 +237,10 @@ try:
                 for relic in relicData["relics"]:
                     score = f"{relic["score"]:,}"
                     mainAffix = relic["main"]
+                    mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]["prio"]["main"][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
                     col = rankcolor[grade]
-                    print(f"\033[7;38;5;{col}m {index:02d} | {mainAffix['key'].upper().ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
+                    print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                     for sub in relic["sub"]:
                         key = sub["key"].upper()
                         value = sub["value"]
@@ -256,6 +257,8 @@ try:
                     print("    |                             |         |         |")
                 col = rankcolor[gradescan(rankcutoffs_relic, relic["score"])]
                 print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
+                if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
+                    print(f"\nMainstat Faults: {relicData["flags"]["mainfaults"]}\nSet Faults: {relicData["flags"]["setfaults"]}")
             else:
                 print("\n[\033[38;5;240mi] No relics available to evaluate.\033[0m")
             input("\n\033[38;5;240m[ <- ]\033[0m")
