@@ -604,6 +604,8 @@ try:
                     for attr in attrs:
                         if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
                             raise ValueError(f"Invalid attribute supplied: '{attr}'")
+                        if attr in ["atk", "def", "hp"]:
+                            attr += "%"
                     for attr in attrs:
                         prio_dict[attr] = current_rank
                     current_rank += 1
