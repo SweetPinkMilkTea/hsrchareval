@@ -3,9 +3,11 @@
 .uid
 *dev*
 
+.venv/
 
 build
 dist
 main.spec
 
 __pycache__/
+.ruff_cache/
