@@ -96,7 +96,6 @@ def analyse(relics: list, targets: dict):
         minus_one_roll = sum([x["count"] for x in piece["sub"]]) < 9
         
         substatprio = dcp(targets["sub"])
-        print(f"{pieceindex} - {substatprio}")
         
         # If mainstat is present in prio, shift other keys upward if applicable
         if mainkey in substatprio:
@@ -109,7 +108,6 @@ def analyse(relics: list, targets: dict):
                 for key in substatprio:
                     if substatprio[key] > removed_value:
                         substatprio[key] -= 1
-        print(f"{pieceindex} - {substatprio}")
         
         # If prio contains less than 4 keys, give "grace rolls" to avoid forced penalties
         grace = 4 - min([4, len(substatprio)])
