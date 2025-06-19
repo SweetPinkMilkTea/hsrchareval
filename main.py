@@ -268,6 +268,21 @@ try:
                     input("\n\033[31m[ No teams configured yet ]\033[0m")
                     continue
                 namespacing = len(max(characters, key=len)) if len(max(characters, key=len)) >= 15 else 15
+                print("\033cLoading, please wait a moment...")
+                characterEval = {}
+                for character in characters:
+                    ev_stats = characters[character]
+                    ev_breakpoints = breakpoints[character]
+                    ev_bridges = bridgedata[character]
+                    try:
+                        ev_relics = relics[character]["equipment"]
+                        ev_prio = relics[character]["prio"]
+                        if ev_relics == {}:
+                            raise ValueError("No relics")
+                    except (KeyError, ValueError):
+                        ev_relics = None
+                        ev_prio = None
+                    characterEval[character] = charcom.analyseChar(ev_breakpoints, ev_stats, ev_bridges, ev_relics, ev_prio)
                 print("\033[7m #   | TEAM           | SCORE       | ACC      | RANK |\033[0m\n     |                |             |          |      |")
                 teams_condense = []
                 index = 1
@@ -276,31 +291,12 @@ try:
                     cumulativeratio = []
                     rank_str = ""
                     team_content = []
-                    for ii in teams[target]:
-                        allscore = []
-                        allratio = []
-                        inverse = breakpoints[ii]["inverse"]
-                        for i in characters[ii]:
-                            if i != "updated":
-                                value1 = float(characters[ii][i]) + bridgedata[ii].get(i,0)
-                                value2 = float(breakpoints[ii][i])
-                                value1 = int(value1) if value1.is_integer() else value1
-                                value2 = int(value2) if value2.is_integer() else value2
-                                ratio = 2*value1/value2-1
-                                if ratio < 0:
-                                    ratio = 0
-                                if ratio > 1:
-                                    ratio = 1
-                                score = charcom.attributeScore(i, value1, value2, i in inverse)
-                                if score >= 100000:
-                                    ratio = 1
-                                allscore.append(score)
-                                allratio.append(ratio)
-                        cumulativescore.append(int((sum(allscore) + min(allscore)*5)/(len(allscore)+5)))
-                        cumulativeratio.append(round(sum(allratio*100)/len(allratio),2))
+                    for character in teams[target]:
+                        cumulativescore.append(characterEval[character]["stats"]["score"])
+                        cumulativeratio.append(characterEval[character]["stats"]["accuracy"])
                         grade = gradescan(rankcutoffs_score, cumulativeratio[-1])
                         rank_str += grade
-                        team_content.append({"name":ii,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
+                        team_content.append({"name":character,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
                     score = int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5))
                     if score > 100000:
                         score = f"X-{score-100000:,}"
