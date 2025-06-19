@@ -237,7 +237,7 @@ try:
                 for relic in relicData["relics"]:
                     score = f"{relic['score']:,}"
                     mainAffix = relic["main"]
-                    mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]["prio"]["main"][index-3].upper()}]"
+                    mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
                     col = rankcolor[grade]
                     print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
