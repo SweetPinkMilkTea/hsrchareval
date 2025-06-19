@@ -112,22 +112,7 @@ def analyse(relics: list, targets: dict):
         # If prio contains less than 4 keys, give "grace rolls" to avoid forced penalties
         grace = 4 - min([4, len(substatprio)])
         
-        # Increase prio weight of lower rated attributes if higher rated ones are present
-        subs_keys = {sub["key"] for sub in piece["sub"]}
-        while True:
-            min_value = min(substatprio.values())
-            min_keys = {k for k, v in substatprio.items() if v == min_value}
-
-            if not min_keys.issubset(subs_keys):
-                break
-
-            for k in substatprio:
-                if substatprio[k] > min_value:
-                    substatprio[k] -= 1
-
-            if len(set(substatprio.values())) == 1:
-                break
-                        
+                                
         flatstattriggers = [x.replace("%","") for x in substatprio.keys() if x.endswith("%")]
         
         ev_substats = []
