@@ -1,7 +1,10 @@
 from pathlib import Path
 import re
 import shutil
-import json, time, os, traceback
+import json
+import time
+import os
+import traceback
 from copy import deepcopy as dcp
 
 
@@ -60,7 +63,7 @@ def gradescan(list: dict, mark: float):
 try:
     # Setup
     configutil.filesetup()
-            
+
     with open(configutil.PATHS.characters) as f:
         characters = json.load(f)
     with open(configutil.PATHS.relics) as f:
@@ -74,13 +77,13 @@ try:
 
     with open(configutil.PATHS.uid) as f:
         uid = f.read()
-        
+
     with open(configutil.PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
 
     if len(breakpoints) == 0:
         configutil.first_run_import()
-        
+
     if uid == "0":
         while True:
             print("\033c\033[7m Quick-Import Setup               >\033[0m")
@@ -184,8 +187,8 @@ try:
                 current = int(current) if current.is_integer() else current
                 goal = int(goal) if goal.is_integer() else goal
                 ratio = 2*current/goal-1
-                if ratio < 0:
-                    ratio = 0
+                ratio = max(ratio, 0)
+                ratio = min(ratio, 1)
                 if ratio > 1:
                     ratio = 1
                 score = characterEval[target]["stats"]["attributes"][attrKey]["score"]
@@ -231,7 +234,7 @@ try:
             else:
                 print(f"\nAttribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
             if characterEval[target]["relics"] != {}:
-                print(f"\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    |                             |         |         |")
+                print("\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    |                             |         |         |")
                 relicData = characterEval[target]["relics"]
                 index = 1
                 for relic in relicData["relics"]:
@@ -258,7 +261,7 @@ try:
                 col = rankcolor[gradescan(rankcutoffs_relic, relic["score"])]
                 print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                 if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
-                    print(f"\nMainstat Faults: {relicData["flags"]["mainfaults"]}\nSet Faults: {relicData["flags"]["setfaults"]}")
+                    print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
             else:
                 print("\n[\033[38;5;240mi] No relics available to evaluate.\033[0m")
             input("\n\033[38;5;240m[ <- ]\033[0m")
@@ -353,7 +356,7 @@ try:
                         print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
                         nobp.append(i+1)
                 else:
-                    if not sorted(list(breakpoints.keys()))[i] in characters.keys():
+                    if sorted(list(breakpoints.keys()))[i] not in characters.keys():
                         if lm == 1:
                             print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
@@ -406,14 +409,14 @@ try:
                         for value in api_attr:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
-                        
+
                         if target in relics:
                             relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
                             if relicstatus["success"]:
                                 api_relic = reliccom.extract(api_data["characters"][index]["relics"])
                         else:
                             relicstatus = {"success": False, "message": "No relic information provided (Use Breakpoints)"}
-                        
+
                         print("API Data found!")
                         print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
                         if input("Continue? (Y/N) > \033[38;5;202m").lower() != "y":
@@ -440,7 +443,7 @@ try:
                 for attribute in coreAttributes:
                     if breakpoints[target][attribute] != -1:
                         while True:
-                            if api_attr == {}:
+                            if not api_attr:
                                 valueInput = input(f"Enter value for \033[1m{attribute.upper()}\033[0m: \033[38;5;202m").replace(",",".").replace("%","")
                             else:
                                 print(f"\033[1m{attribute.upper()}\033[0m: \033[38;5;202m{api_attr[attribute.lower()]}")
@@ -451,7 +454,7 @@ try:
                             except:
                                 pass
                         if comp_mode:
-                            if not attribute in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
+                            if attribute not in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
                                 color = 196 if int(valueInput) < int(lastdata[attribute]) else 40
                                 if int(valueInput) == int(lastdata[attribute]):
                                     color = 240
@@ -465,14 +468,14 @@ try:
                             print("\033[0m",end="")
                         characters[target][attribute] = valueInput
             except KeyboardInterrupt:
-                if not old_temp is None:
+                if old_temp is not None:
                     characters[target] = old_temp
                 else:
                     del characters[target]
                 continue
             except:
                 input("\n\033[31m[ An Error occured and character data was reverted. ]\033[0m")
-                if not old_temp is None:
+                if old_temp is not None:
                     characters[target] = old_temp
                 else:
                     del characters[target]
@@ -497,7 +500,7 @@ try:
             print("\n\033[0mEnter a team name to edit a preexisting or create a new one \033[38;5;240m(17 chars max)\033[0m:")
             target = ""
             try:
-                while not (len(target) in range(1,18)):
+                while len(target) not in range(1,18):
                     target = input("> \033[38;5;202m").strip().lower()
             except:
                 continue
@@ -507,7 +510,7 @@ try:
             except:
                 continue
             if len(char_target) != 4:
-                input(f"\n\033[31m[ Invalid team size ]\033[0m")
+                input("\n\033[31m[ Invalid team size ]\033[0m")
                 continue
             for i in range(len(char_target)):
                 char_target[i] = char_target[i].lower().strip()
@@ -517,7 +520,7 @@ try:
                     bp_ignore.append(i)
             team_ok = True
             for i in char_target:
-                if not i in breakpoints:
+                if i not in breakpoints:
                     input(f"\n\033[31m[ Character not recognized ({i}) ]\033[0m")
                     team_ok = False
                     continue
@@ -525,7 +528,7 @@ try:
                     input(f"\n\033[31m[ Character has no breakpoints ({i}) ]\033[0m")
                     team_ok = False
                     continue
-                if not i in characters:
+                if i not in characters:
                     input(f"\n\033[31m[ No character information yet ({i}) ]\033[0m")
                     team_ok = False
                     continue
@@ -557,7 +560,7 @@ try:
             prev_breakpoints = dcp(breakpoints)
             prev_relics = dcp(relics)
             breakpoints[target] = {}
-            if not target in relics:
+            if target not in relics:
                 relics[target] = {"equipment":[],"base_values":{},"prio":{"main":[],"sub":{}}}
             print("Mark unneeded parameters with '-1'. Use highest recommended values.")
             try:
@@ -567,7 +570,7 @@ try:
                     print("\033[0m",end="")
                     breakpoints[target][i] = float(x)
                 print("\nEnter attributes to mark as \033[1minverse\033[0m. Inverse describes attributes that should \033[1mnot be exceeded\033[0m.")
-                x = input(f"Enter attributes (Seperate multiple with comma or leave blank): \033[38;5;202m")
+                x = input("Enter attributes (Seperate multiple with comma or leave blank): \033[38;5;202m")
                 if x != "":
                     x = x.lower().split(",")
                     xnot = [item.strip() for item in x if item.lower() not in coreAttributes]
@@ -580,19 +583,19 @@ try:
                     breakpoints[target]["inverse"] = []
 
                 print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
-                x = input(f"\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
+                x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
                 x = [item.strip().lower() for item in x.split(",")]
                 attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
                 xs = [item.strip() for item in x if item.lower() in attr_ok]
-                xn = [item.strip() for item in x if not item.lower() in attr_ok]
+                xn = [item.strip() for item in x if item.lower() not in attr_ok]
                 if len(xs) == 4:
                     relics[target]["prio"]["main"] = xs
                 else:
                     print(x, xs, attr_ok)
                     raise ValueError(f"Invalid attribute(s): {", ".join(xn)}")
-                
+
                 print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic sub stats.\033[0m")
-                x = input(f"\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
+                x = input("\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
                 priority_groups = [group.strip() for group in x.lower().split(">")]
                 prio_dict = {}
                 current_rank = 1
@@ -615,7 +618,7 @@ try:
                 with open(configutil.PATHS.characters,"r") as f:
                     characters = json.load(f)
 
-                if [key for key, value in breakpoints[target].items() if value == -1 and not key in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and not key in coreAttributes] and target in characters:
+                if [key for key, value in breakpoints[target].items() if value == -1 and key not in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key not in coreAttributes] and target in characters:
                     print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
                     del characters[target]
                     with open(configutil.PATHS.characters,"w") as f:
@@ -643,14 +646,14 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            if not target in breakpoints.keys():
-                input(f"\n\033[31m[ Character not recognized. ]\033[0m")
+            if target not in breakpoints.keys():
+                input("\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
             if list(breakpoints[target].values()) == [-1] * 9:
-                input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
+                input("\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
-            if not key in coreAttributes:
-                input(f"\n\033[31m[ Value key not recognized. ]\033[0m")
+            if key not in coreAttributes:
+                input("\n\033[31m[ Value key not recognized. ]\033[0m")
                 continue
             try:
                 x = input(f"\033[0mEnter value for \033[1m{key.upper()}\033[0m Bridge: \033[38;5;202m").replace(",",".")
@@ -669,11 +672,11 @@ try:
             except:
                 continue
             print("\033[0m",end="")
-            if not target in breakpoints.keys():
-                input(f"\n\033[31m[ Character not recognized. ]\033[0m")
+            if target not in breakpoints.keys():
+                input("\n\033[31m[ Character not recognized. ]\033[0m")
                 continue
             if list(breakpoints[target].values()) == [-1] * 9 + [[]]:
-                input(f"\n\033[31m[ Character has no breakpoints ]\033[0m")
+                input("\n\033[31m[ Character has no breakpoints ]\033[0m")
                 continue
             q_char = {}
             for attribute in coreAttributes:
@@ -687,7 +690,7 @@ try:
                         except:
                             pass
                     q_char[attribute] = x
-            print(f"\n\033[7m ATTRIBUTE    | VALUE                  | SCORE   |\033[27m")
+            print("\n\033[7m ATTRIBUTE    | VALUE                  | SCORE   |\033[27m")
             ev_stats = q_char
             ev_breakpoints = breakpoints[target]
             ev_bridges = {}
@@ -748,9 +751,9 @@ try:
                     response = requests.get("https://www.prydwen.gg/star-rail/characters")
                     response.raise_for_status()
                     isOffline = False
-                    main = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
-                    entryindex = len(main)
-                    for object in main:
+                    cards = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
+                    entryindex = len(cards)
+                    for object in cards:
                         objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
                         if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
                             entryindex -= 1
@@ -759,7 +762,7 @@ try:
                         continue
                     print(f"Expecting {entryindex} new entries.")
                     print("0: Ignore / 1: Change name and add / 2: Directly add")
-                    for object in main:
+                    for object in cards:
                         target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
                         if target not in breakpoints.keys() and target not in ignore["keys"]:
                             while True:
@@ -783,7 +786,7 @@ try:
                     with open(configutil.PATHS.breakpoints,"w") as f:
                         json.dump(breakpoints,f)
                     input("\n\033[38;5;40m[ Done. ]\033[0m")
-                except requests.exceptions.RequestException as e:
+                except requests.exceptions.RequestException:
                     input("\n\033[31m[ Request has failed. ]\033[0m")
                 except KeyboardInterrupt:
                     input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
@@ -820,10 +823,10 @@ try:
                         api_chars = [x['name'].lower() for x in api_data["characters"]]
                     except KeyboardInterrupt:
                         continue
-                    except requests.exceptions.RequestException as e:
+                    except requests.exceptions.RequestException:
                         input("\n\033[31m[ Connection failed. ]\033[0m")
                         continue
-                    except Exception as e:
+                    except Exception:
                         #print(f"\033[38;5;240m{traceback.format_exc()}\033[0m")
                         input("\n\033[31m[ An error occured. ]\033[0m")
                     isOffline = False
@@ -914,7 +917,7 @@ try:
                     continue
                 if lm == 1:
                     shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
-                    input(f"\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                    input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
                 if lm == 2:
                     target = input("Target Name:").strip().lower()
                     if target in characters:
@@ -928,13 +931,13 @@ try:
                         if tbr:
                             del teams[tbr]
                         with open(configutil.PATHS.characters, "w") as f:
-                             json.dump(characters, f)
+                            json.dump(characters, f)
                         with open(configutil.PATHS.breakpoints, "w") as f:
-                             json.dump(breakpoints, f)
+                            json.dump(breakpoints, f)
                         with open(configutil.PATHS.bridgedata, "w") as f:
-                             json.dump(bridgedata, f)
+                            json.dump(bridgedata, f)
                         with open(configutil.PATHS.teams, "w") as f:
-                             json.dump(teams, f)
+                            json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist in characters ]\033[0m")
@@ -952,13 +955,13 @@ try:
                         if tbr:
                             del tbr
                         with open(configutil.PATHS.characters, "w") as f:
-                             json.dump(characters, f)
+                            json.dump(characters, f)
                         with open(configutil.PATHS.breakpoints, "w") as f:
-                             json.dump(breakpoints, f)
+                            json.dump(breakpoints, f)
                         with open(configutil.PATHS.bridgedata, "w") as f:
-                             json.dump(bridgedata, f)
+                            json.dump(bridgedata, f)
                         with open(configutil.PATHS.teams, "w") as f:
-                             json.dump(teams, f)
+                            json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist in breakpoints ]\033[0m")
@@ -967,11 +970,11 @@ try:
                     if target in bridgedata:
                         bridgedata[target] = {}
                         with open(configutil.PATHS.characters, "w") as f:
-                             json.dump(characters, f)
+                            json.dump(characters, f)
                         with open(configutil.PATHS.breakpoints, "w") as f:
-                             json.dump(breakpoints, f)
+                            json.dump(breakpoints, f)
                         with open(configutil.PATHS.bridgedata, "w") as f:
-                             json.dump(bridgedata, f)
+                            json.dump(bridgedata, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist or has no bridges ]\033[0m")
@@ -980,7 +983,7 @@ try:
                     if target in teams:
                         del teams[target]
                         with open(configutil.PATHS.teams, "w") as f:
-                             json.dump(teams, f)
+                            json.dump(teams, f)
                         input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
                     else:
                         input("\n\033[31m[ Entry doesn't exist ]\033[0m")
@@ -998,12 +1001,12 @@ try:
                                 shutil.rmtree(file_path)
                         except Exception as e:
                             raise Exception(f"\033[31m\nFailed to delete {file_path} ({e}).\nTry to delete the offending data yourself.\033[0m")
-                    raise Exception(f"Reset complete. Start the program again to start fresh.")
+                    raise Exception("Reset complete. Start the program again to start fresh.")
                 if lm == 0:
                     configutil.open_file_explorer(configutil.get_app_data_path())
                     input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
     input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
-except Exception as e:
+except Exception:
     input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\033[0m")

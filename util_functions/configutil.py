@@ -1,4 +1,5 @@
-import platform, os
+import platform
+import os
 from pathlib import Path
 import subprocess
 import json
@@ -59,7 +60,7 @@ def filesetup():
     with open(PATHS.breakpoints) as f:
         breakpoints = json.load(f)
         for i in breakpoints:
-            if not "inverse" in breakpoints[i].keys():
+            if "inverse" not in breakpoints[i].keys():
                 breakpoints[i]["inverse"] = []
 
     with open(PATHS.bridgedata) as f:
@@ -113,7 +114,7 @@ def first_run_import():
             with open(PATHS.breakpoints) as f:
                 json.dump(breakpoints,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             input("\n\033[31m[ Request has failed. Are you offline? ]\033[0m")
         except KeyboardInterrupt:
             input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")

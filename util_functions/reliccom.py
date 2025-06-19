@@ -24,7 +24,7 @@ def extract(rawdata):
     for relic in rawdata:
         current = {}
         # set id
-        if not relic["set_id"] in set_ids:
+        if relic["set_id"] not in set_ids:
             set_ids[relic["set_id"]] = chr(65+len(list(set_ids.keys())))
         current["set"] = set_ids[relic["set_id"]]
         # main stat
