@@ -235,7 +235,7 @@ try:
                 relicData = characterEval[target]["relics"]
                 index = 1
                 for relic in relicData["relics"]:
-                    score = f"{relic["score"]:,}"
+                    score = f"{relic['score']:,}"
                     mainAffix = relic["main"]
                     mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]["prio"]["main"][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
