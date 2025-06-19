@@ -151,7 +151,7 @@ def analyse(relics: list, targets: dict):
         if main_fault:
             score *= 0.2 if low_fault_impact else 0.9
         else:
-            score = 10 + score * 0.9
+            score = 10 + score * 0.9 if pieceindex > 1 else score
         score = round(score, 2)
         
         # Assemble and continue
