@@ -1,4 +1,5 @@
 from collections import Counter
+from copy import deepcopy as dcp
 
 # Arrays: [0] is minimum, [1] maximum; per roll
 roll_dist = {
@@ -75,12 +76,14 @@ def analyse(relics: list, targets: dict):
     result["flags"]["setfaults"] = set_faults
     
     pieceindex = 0
+    
     for piece in relics:
-        # Check Main Stats
+        ### Check Main Stats
         mainkey = piece["main"]["key"]
         mainstattargets = ["hp","atk"] + targets["main"]
         targetkey = mainstattargets[pieceindex]
         
+        # Check for main faults
         main_fault = mainkey != targetkey
         low_fault_impact = (mainkey.endswith("dmg") or mainkey.endswith("atk")) and (targetkey.endswith("dmg") or targetkey.endswith("atk"))
         
@@ -89,10 +92,44 @@ def analyse(relics: list, targets: dict):
         
         ev_mainstat = {"key": mainkey, "target": targetkey}
         
-        # Check Subs and calc score
+        ### Check Subs and calc score
         minus_one_roll = sum([x["count"] for x in piece["sub"]]) < 9
         
-        substatprio = targets["sub"]
+        substatprio = dcp(targets["sub"])
+        print(f"{pieceindex} - {substatprio}")
+        
+        # If mainstat is present in prio, shift other keys upward if applicable
+        if mainkey in substatprio:
+            removed_value = substatprio[mainkey]
+            del substatprio[mainkey]
+
+            # Check if the removed value still exists in the remaining values
+            if removed_value not in substatprio.values():
+                # Shift all values higher than the removed_value downward by 1
+                for key in substatprio:
+                    if substatprio[key] > removed_value:
+                        substatprio[key] -= 1
+        print(f"{pieceindex} - {substatprio}")
+        
+        # If prio contains less than 4 keys, give "grace rolls" to avoid forced penalties
+        grace = 4 - min([4, len(substatprio)])
+        
+        # Increase prio weight of lower rated attributes if higher rated ones are present
+        subs_keys = {sub["key"] for sub in piece["sub"]}
+        while True:
+            min_value = min(substatprio.values())
+            min_keys = {k for k, v in substatprio.items() if v == min_value}
+
+            if not min_keys.issubset(subs_keys):
+                break
+
+            for k in substatprio:
+                if substatprio[k] > min_value:
+                    substatprio[k] -= 1
+
+            if len(set(substatprio.values())) == 1:
+                break
+                        
         flatstattriggers = [x.replace("%","") for x in substatprio.keys() if x.endswith("%")]
         
         ev_substats = []
@@ -118,7 +155,10 @@ def analyse(relics: list, targets: dict):
             
             ev_substats.append({"key":key,"value":value,"count":count,"score":score,"saturation":saturation,"weight":weight})
             for i in range(count):
-                substatscores.append(score)
+                if grace == 0:
+                    substatscores.append(score)
+                else:
+                    grace -= 1
         
         if minus_one_roll:
             substatscores.append(0)        
