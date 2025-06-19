@@ -687,25 +687,18 @@ try:
                         except:
                             pass
                     q_char[attribute] = x
-            print()
-            allscore = []
-            allratio = []
+            print(f"\n\033[7m ATTRIBUTE    | VALUE                  | SCORE   |\033[27m")
+            ev_stats = q_char
+            ev_breakpoints = breakpoints[target]
+            ev_bridges = {}
+            characterEval = charcom.analyseChar(ev_breakpoints, ev_stats, ev_bridges)
             inverse = breakpoints[target]["inverse"]
-            for attribute in q_char:
+            for attribute in characterEval["stats"]["attributes"]:
                 value1 = float(q_char[attribute])
                 value2 = float(breakpoints[target][attribute])
                 value1 = int(value1) if value1.is_integer() else value1
                 value2 = int(value2) if value2.is_integer() else value2
-                ratio = 2*value1/value2-1
-                if ratio < 0:
-                    ratio = 0
-                if ratio > 1:
-                    ratio = 1
-                score = charcom.attributeScore(attribute, value1, value2, attribute in inverse)
-                if score >= 100000:
-                    ratio = 1
-                allscore.append(score)
-                allratio.append(ratio)
+                score = characterEval["stats"]["attributes"][attribute]["score"]
                 xvalue1 = f"{value1:,}"
                 xvalue2 = f"{value2:,}"
                 if score < 100000:
@@ -732,11 +725,12 @@ try:
                         col_index += 1
                 print(f" {attribute.upper().ljust(13)}| \033[38;5;{colorcode[col_index]}m{xvalue1}\033[38;5;240m {comp_symbol} {xvalue2.ljust(21-1-len(xvalue1))}\033[0m| {score}{' '*(8-len(score))}|")
             print("\n")
-            score = (sum(allscore) + min(allscore)*5)/(len(allscore)+5)
+            score = characterEval["stats"]["score"]
+            ratio = characterEval["stats"]["accuracy"]
             if score >= 100000:
-                print(f"Total scoring: \033[7;38;5;171m X-{int(score)-100000:,} \033[0m \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+                print(f"Total scoring: \033[7;38;5;171m X-{int(score)-100000:,} \033[0m \033[38;5;240m({ratio:,}% acc)")
             else:
-                print(f"Total scoring: {int(score):,} \033[38;5;240m({int(sum(allratio*100)/len(allratio)):,}% acc)")
+                print(f"Total scoring: {int(score):,} \033[38;5;240m({ratio:,}% acc)")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
             print("\033c\033[7m Select option                   >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n[4] - Manage Savefile")
