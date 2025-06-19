@@ -258,7 +258,7 @@ try:
                             print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                     index += 1
                     print("    |                             |         |         |")
-                col = rankcolor[gradescan(rankcutoffs_relic, relic["score"])]
+                col = rankcolor[gradescan(rankcutoffs_relic, relicData["fullscore"])]
                 print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                 if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
                     print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
