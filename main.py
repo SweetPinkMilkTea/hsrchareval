@@ -263,7 +263,7 @@ try:
                 if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
                     print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
             else:
-                print("\n[\033[38;5;240mi] No relics available to evaluate.\033[0m")
+                print("\n[\033[38;5;240mi] No relics (and/or breakpoints) available to evaluate.\033[0m")
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 2:
             try:
@@ -410,12 +410,13 @@ try:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
 
-                        if target in relics:
+                        relicsavailable = relics.get(target,{}).get("prio",{}) == {}
+                        if relicsavailable:
                             relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
                             if relicstatus["success"]:
                                 api_relic = reliccom.extract(api_data["characters"][index]["relics"])
                         else:
-                            relicstatus = {"success": False, "message": "No relic information provided (Use Breakpoints)"}
+                            relicstatus = {"success": False, "message": "No relic information set, use breakpoints"}
 
                         print("API Data found!")
                         print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
@@ -583,35 +584,41 @@ try:
                 else:
                     breakpoints[target]["inverse"] = []
 
-                print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
-                x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
-                x = [item.strip().lower() for item in x.split(",")]
-                attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
-                xs = [item.strip() for item in x if item.lower() in attr_ok]
-                xn = [item.strip() for item in x if item.lower() not in attr_ok]
-                if len(xs) == 4:
-                    relics[target]["prio"]["main"] = xs
+                print("\033[0m\nEnter Relic Breakpoints?\nSkipping this won't prevent you from importing and rating, but disables relic functionality for the character.\n[Y/N]")
+                relicchoice = input("> ").lower()
+                
+                if relicchoice == "y":
+                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
+                    x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
+                    x = [item.strip().lower() for item in x.split(",")]
+                    attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
+                    xs = [item.strip() for item in x if item.lower() in attr_ok]
+                    xn = [item.strip() for item in x if item.lower() not in attr_ok]
+                    if len(xs) == 4:
+                        relics[target]["prio"]["main"] = xs
+                    else:
+                        print(x, xs, attr_ok)
+                        raise ValueError(f"Invalid attribute(s): {", ".join(xn)}")
+
+                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic sub stats.\033[0m")
+                    x = input("\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
+                    priority_groups = [group.strip() for group in x.lower().split(">")]
+                    prio_dict = {}
+                    current_rank = 1
+                    for group in priority_groups:
+                        attrs = [attr.strip() for attr in group.split("=")]
+                        for attr in attrs:
+                            if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
+                                raise ValueError(f"Invalid attribute supplied: '{attr}'")
+                            if attr in ["atk", "def", "hp"]:
+                                attr += "%"
+                        for attr in attrs:
+                            prio_dict[attr] = current_rank
+                        current_rank += 1
+                    relics[target]["prio"]["sub"] = prio_dict
                 else:
-                    print(x, xs, attr_ok)
-                    raise ValueError(f"Invalid attribute(s): {", ".join(xn)}")
-
-                print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic sub stats.\033[0m")
-                x = input("\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
-                priority_groups = [group.strip() for group in x.lower().split(">")]
-                prio_dict = {}
-                current_rank = 1
-                for group in priority_groups:
-                    attrs = [attr.strip() for attr in group.split("=")]
-                    for attr in attrs:
-                        if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
-                            raise ValueError(f"Invalid attribute supplied: '{attr}'")
-                        if attr in ["atk", "def", "hp"]:
-                            attr += "%"
-                    for attr in attrs:
-                        prio_dict[attr] = current_rank
-                    current_rank += 1
-                relics[target]["prio"]["sub"] = prio_dict
-
+                    relics[target]["prio"] = {}
+                    
                 with open(configutil.PATHS.bridgedata) as f:
                     bridgedata = json.load(f)
                 for i in breakpoints:
