@@ -427,6 +427,7 @@ try:
                         print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
                 else:
                     api_attr = {}
+                    relicstatus = {"success":False, "message":"No API import"}
             except requests.exceptions.RequestException:
                 print("Couldn't load from profile because of network issues. Continue entering manually.\n")
                 api_attr = {}
