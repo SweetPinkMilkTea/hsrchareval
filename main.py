@@ -139,7 +139,7 @@ try:
                 try:
                     ev_relics = relics[character]["equipment"]
                     ev_prio = relics[character]["prio"]
-                    if ev_relics == {}:
+                    if ev_relics == []:
                         raise ValueError("No relics")
                 except (KeyError, ValueError):
                     ev_relics = None
