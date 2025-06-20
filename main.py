@@ -856,10 +856,10 @@ try:
                             for na, sy in api_name_mapping.items():
                                 print(f"INDEX {' ' if index > 9 else ''}{index} | {sy} --> {na}")
                                 index += 1
-                            print("\nControls:")
-                            print("Add/Edit : '+,APINAME,BPIDENTIFIER'")
-                            print("Delete   : 'x,INDEX'")
-                            print("\n\033[38;5;240mPress CTRL C to exit.\033[0m")
+                        print("\nControls:")
+                        print("Add/Edit : '+,APINAME,BPIDENTIFIER'")
+                        print("Delete   : 'x,INDEX'")
+                        print("\n\033[38;5;240mPress CTRL C to exit.\033[0m")
                         try:
                             syn = input("\n > ")
                             if syn == "":
@@ -873,10 +873,10 @@ try:
                                     input("\n\033[31m[ One or more Arguments are empty. ]\033[0m")
                                     continue
                                 try:
-                                    input(f"\nSet the following?:\n{syn[1]} --> {syn[0]}\nENTER: Yes / CTRL C: No")
+                                    input(f"\nSet the following?:\n{syn[0]} --> {syn[1]}\nENTER: Yes / CTRL C: No")
                                 except:
                                     continue
-                                api_name_mapping[syn[0]] = syn[1]
+                                api_name_mapping[syn[1]] = syn[0]
                                 with open(configutil.PATHS.api_name_map,"w") as f:
                                     json.dump(api_name_mapping,f)
                                 input("\n\033[38;5;40m[ Done. ]\033[0m")
