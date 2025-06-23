@@ -410,7 +410,7 @@ try:
                             if value not in floatingCoreAttributes:
                                 api_attr[value] = int(round(api_attr[value], 0))
 
-                        relicsavailable = relics.get(target,{}).get("prio",{}) == {}
+                        relicsavailable = not relics.get(target,{}).get("prio",{}) == {}
                         if relicsavailable:
                             relicstatus = reliccom.validate(api_data["characters"][index]["relics"])
                             if relicstatus["success"]:
