@@ -393,7 +393,7 @@ try:
                     keymap = {"break dmg":"break effect","sp rate":"energy regen"}
                     if api_name.lower() in api_chars:
                         index = api_chars.index(api_name.lower())
-                        for attribute in coreAttributes:
+                        for attribute in coreAttributes + supplementaryAttributes:
                             api_attr[attribute] = 0
                         api_attr["energy regen"] = 100
                         for section in ["attributes","additions"]:
