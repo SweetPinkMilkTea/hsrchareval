@@ -426,6 +426,7 @@ try:
 
                     else:
                         print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
+                        relicstatus = {"success":False, "message":"No API import"}
                 else:
                     api_attr = {}
                     relicstatus = {"success":False, "message":"No API import"}
