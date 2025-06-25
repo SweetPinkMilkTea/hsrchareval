@@ -457,15 +457,16 @@ try:
                                 pass
                         if comp_mode:
                             if attribute not in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                                color = 196 if int(valueInput) < int(lastdata[attribute]) else 40
-                                if int(valueInput) == int(lastdata[attribute]):
+                                prev_attr = lastdata.get(attribute, 0)
+                                color = 196 if int(valueInput) < int(prev_attr) else 40
+                                if int(valueInput) == int(prev_attr):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if int(valueInput) <= int(lastdata[attribute]) else '+'}{int(valueInput) - int(lastdata[attribute])} \033[38;5;240m(from {int(lastdata[attribute])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if int(valueInput) <= int(prev_attr) else '+'}{int(valueInput) - int(prev_attr)} \033[38;5;240m(from {int(prev_attr)})\033[0m")
                             else:
-                                color = 196 if float(valueInput) < float(lastdata[attribute]) else 40
-                                if float(valueInput) == float(lastdata[attribute]):
+                                color = 196 if float(valueInput) < float(prev_attr) else 40
+                                if float(valueInput) == float(prev_attr):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if float(valueInput) <= float(lastdata[attribute]) else '+'}{round(float(valueInput) - float(lastdata[attribute]),1)} \033[38;5;240m(from {float(lastdata[attribute])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if float(valueInput) <= float(prev_attr) else '+'}{round(float(valueInput) - float(prev_attr),1)} \033[38;5;240m(from {float(prev_attr)})\033[0m")
                         else:
                             print("\033[0m",end="")
                         characters[target][attribute] = valueInput
