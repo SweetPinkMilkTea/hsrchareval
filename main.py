@@ -243,6 +243,7 @@ try:
                     mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
                     col = rankcolor[grade]
+                    linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*5
                     print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                     for sub in relic["sub"]:
                         key = sub["key"].upper()
@@ -257,7 +258,7 @@ try:
                         else:
                             print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                     index += 1
-                    print("    |                             |         |         |")
+                    print(f"    | \033[38;5;240m{linetype}\033[0m                      |         |         |")
                 col = rankcolor[gradescan(rankcutoffs_relic, relicData["fullscore"])]
                 print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                 if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
