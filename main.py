@@ -21,9 +21,9 @@ coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break eff
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
 supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res", "heal boost"]
 
-rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"197","X":"200"}
+rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"196","X":"200", "X+":"213"}
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
-rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",70:"SS", 90:"U", 95:"X"}
+rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",70:"SS", 80:"U", 90:"X", 95:"X+"}
 
 def timespan(ts: int):
     "Returns a string with relative time, calculated with a UNIX timestamp."
@@ -243,6 +243,7 @@ try:
                     mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
                     col = rankcolor[grade]
+                    linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*6
                     print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                     for sub in relic["sub"]:
                         key = sub["key"].upper()
@@ -257,7 +258,7 @@ try:
                         else:
                             print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                     index += 1
-                    print("    |                             |         |         |")
+                    print(f"    | \033[38;5;240m{linetype}\033[0m                      |         |         |")
                 col = rankcolor[gradescan(rankcutoffs_relic, relicData["fullscore"])]
                 print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                 if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
@@ -401,9 +402,9 @@ try:
                                 value = attribute["value"]
                                 key = attribute["field"].replace("_", " ")
                                 try:
-                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
+                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg", "effect hit"] or key.endswith(" dmg") else 1), 1)
                                 except KeyError:
-                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
+                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg", "effect hit"] or key.endswith(" dmg") else 1), 1)
                                 if section == "attributes" and key in ["atk", "def", "hp"]:
                                     api_attr["base_" + key] = value
                         for value in api_attr:
@@ -416,7 +417,7 @@ try:
                             if relicstatus["success"]:
                                 api_relic = reliccom.extract(api_data["characters"][index]["relics"])
                         else:
-                            relicstatus = {"success": False, "message": "No relic information set, use breakpoints"}
+                            relicstatus = {"success": False, "message": "No relic information set, use breakpoint editor!"}
 
                         print("API Data found!")
                         print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
@@ -430,8 +431,15 @@ try:
                 else:
                     api_attr = {}
                     relicstatus = {"success":False, "message":"No API import"}
-            except requests.exceptions.RequestException:
-                print("Couldn't load from profile because of network issues. Continue entering manually.\n")
+            except requests.exceptions.RequestException as e:
+                if e.response is not None:
+                    try:
+                        error_str = e.response.json()
+                        code = e.response.status_code
+                    except:
+                        error_str = {}
+                        code = "---"
+                print(f"Couldn't load from profile because of network issues.\n\n\033[31;41m {code} \033[40m - {error_str.get("detail", "Unknown Error")}\033[0m\n\nContinue entering manually.\n")
                 api_attr = {}
                 relicstatus = {"success":False, "message":"No connection"}
             except KeyboardInterrupt:
@@ -457,16 +465,17 @@ try:
                             except:
                                 pass
                         if comp_mode:
+                            prev_attr = lastdata.get(attribute, 0)
                             if attribute not in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                                color = 196 if int(valueInput) < int(lastdata[attribute]) else 40
-                                if int(valueInput) == int(lastdata[attribute]):
+                                color = 196 if int(valueInput) < int(prev_attr) else 40
+                                if int(valueInput) == int(prev_attr):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if int(valueInput) <= int(lastdata[attribute]) else '+'}{int(valueInput) - int(lastdata[attribute])} \033[38;5;240m(from {int(lastdata[attribute])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if int(valueInput) <= int(prev_attr) else '+'}{int(valueInput) - int(prev_attr)} \033[38;5;240m(from {int(prev_attr)})\033[0m")
                             else:
-                                color = 196 if float(valueInput) < float(lastdata[attribute]) else 40
-                                if float(valueInput) == float(lastdata[attribute]):
+                                color = 196 if float(valueInput) < float(prev_attr) else 40
+                                if float(valueInput) == float(prev_attr):
                                     color = 240
-                                print(f"\033[38;5;{color}m{'' if float(valueInput) <= float(lastdata[attribute]) else '+'}{round(float(valueInput) - float(lastdata[attribute]),1)} \033[38;5;240m(from {float(lastdata[attribute])})\033[0m")
+                                print(f"\033[38;5;{color}m{'' if float(valueInput) <= float(prev_attr) else '+'}{round(float(valueInput) - float(prev_attr),1)} \033[38;5;240m(from {float(prev_attr)})\033[0m")
                         else:
                             print("\033[0m",end="")
                         characters[target][attribute] = valueInput
@@ -589,7 +598,7 @@ try:
                 relicchoice = input("> ").lower()
                 
                 if relicchoice == "y":
-                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
+                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic \033[1mmain stats\033[0m.")
                     x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
                     x = [item.strip().lower() for item in x.split(",")]
                     attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
@@ -608,11 +617,14 @@ try:
                     current_rank = 1
                     for group in priority_groups:
                         attrs = [attr.strip() for attr in group.split("=")]
+                        index = 0
                         for attr in attrs:
+                            attr = attr.replace("%","")
                             if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
                                 raise ValueError(f"Invalid attribute supplied: '{attr}'")
                             if attr in ["atk", "def", "hp"]:
-                                attr += "%"
+                                attrs[index] += "%"
+                            index += 1
                         for attr in attrs:
                             prio_dict[attr] = current_rank
                         current_rank += 1

@@ -20,7 +20,7 @@ roll_dist = {
 def extract(rawdata):
     exp = []
     set_ids = {}
-    keymap = {"break dmg":"break effect","sp rate":"energy regen", "heal rate":"heal boost"}
+    keymap = {"break dmg":"break effect","sp rate":"energy regen", "heal rate":"heal boost", "thunder dmg": "lightning dmg"}
     for relic in rawdata:
         current = {}
         # set id
@@ -127,7 +127,7 @@ def analyse(relics: list, targets: dict):
                 avg_roll = value / count
                 saturation = (avg_roll - distibution[0]) / (distibution[1] - distibution[0])
                 priokey = key + "%" if key in flatstattriggers else key
-                weight = 1 / substatprio[priokey]
+                weight = 1 - (0.2 * substatprio[priokey])
                 if key in flatstattriggers:
                     weight *= 0.4
             else:
@@ -138,7 +138,7 @@ def analyse(relics: list, targets: dict):
             
             ev_substats.append({"key":key,"value":value,"count":count,"score":score,"saturation":saturation,"weight":weight})
             for i in range(count):
-                if grace == 0:
+                if grace == 0 or score > 0:
                     substatscores.append(score)
                 else:
                     grace -= 1
