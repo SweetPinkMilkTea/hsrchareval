@@ -402,9 +402,9 @@ try:
                                 value = attribute["value"]
                                 key = attribute["field"].replace("_", " ")
                                 try:
-                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
+                                    api_attr[keymap.get(key,key)] += round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg", "effect hit"] or key.endswith(" dmg") else 1), 1)
                                 except KeyError:
-                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg"] or key.endswith(" dmg") else 1), 1)
+                                    api_attr[keymap.get(key,key)] = round(value * (100 if key in ["crit rate","crit dmg","sp rate", "break dmg", "effect hit"] or key.endswith(" dmg") else 1), 1)
                                 if section == "attributes" and key in ["atk", "def", "hp"]:
                                     api_attr["base_" + key] = value
                         for value in api_attr:
