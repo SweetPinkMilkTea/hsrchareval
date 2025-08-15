@@ -20,7 +20,7 @@ roll_dist = {
 def extract(rawdata):
     exp = []
     set_ids = {}
-    keymap = {"break dmg":"break effect","sp rate":"energy regen", "heal rate":"heal boost"}
+    keymap = {"break dmg":"break effect","sp rate":"energy regen", "heal rate":"heal boost", "thunder dmg": "lightning dmg"}
     for relic in rawdata:
         current = {}
         # set id
