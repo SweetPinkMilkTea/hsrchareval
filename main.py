@@ -465,8 +465,8 @@ try:
                             except:
                                 pass
                         if comp_mode:
+                            prev_attr = lastdata.get(attribute, 0)
                             if attribute not in ["crit rate","crit dmg","break effect","energy regen","effect hit"]:
-                                prev_attr = lastdata.get(attribute, 0)
                                 color = 196 if int(valueInput) < int(prev_attr) else 40
                                 if int(valueInput) == int(prev_attr):
                                     color = 240
