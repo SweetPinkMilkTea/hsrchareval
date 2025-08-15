@@ -138,7 +138,7 @@ def analyse(relics: list, targets: dict):
             
             ev_substats.append({"key":key,"value":value,"count":count,"score":score,"saturation":saturation,"weight":weight})
             for i in range(count):
-                if grace == 0:
+                if grace == 0 or score > 0:
                     substatscores.append(score)
                 else:
                     grace -= 1

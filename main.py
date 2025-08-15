@@ -243,7 +243,7 @@ try:
                     mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
                     grade = gradescan(rankcutoffs_relic, relic["score"])
                     col = rankcolor[grade]
-                    linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*5
+                    linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*6
                     print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                     for sub in relic["sub"]:
                         key = sub["key"].upper()
@@ -417,7 +417,7 @@ try:
                             if relicstatus["success"]:
                                 api_relic = reliccom.extract(api_data["characters"][index]["relics"])
                         else:
-                            relicstatus = {"success": False, "message": "No relic information set, use breakpoints"}
+                            relicstatus = {"success": False, "message": "No relic information set, use breakpoint editor!"}
 
                         print("API Data found!")
                         print("Relics will be written as well." if relicstatus["success"] else f"Relics cannot be written: {relicstatus['message']}")
@@ -427,11 +427,19 @@ try:
 
                     else:
                         print("Couldn't match any names. Continue entering manually.\n\033[38;5;240mIf you believe this is unwanted behavior, edit the name-mapping in configuration settings.\033[0m")
+                        relicstatus = {"success":False, "message":"No API import"}
                 else:
                     api_attr = {}
                     relicstatus = {"success":False, "message":"No API import"}
-            except requests.exceptions.RequestException:
-                print("Couldn't load from profile because of network issues. Continue entering manually.\n")
+            except requests.exceptions.RequestException as e:
+                if e.response is not None:
+                    try:
+                        error_str = e.response.json()
+                        code = e.response.status_code
+                    except:
+                        error_str = {}
+                        code = "---"
+                print(f"Couldn't load from profile because of network issues.\n\n\033[31;41m {code} \033[40m - {error_str.get("detail", "Unknown Error")}\033[0m\n\nContinue entering manually.\n")
                 api_attr = {}
                 relicstatus = {"success":False, "message":"No connection"}
             except KeyboardInterrupt:
@@ -590,7 +598,7 @@ try:
                 relicchoice = input("> ").lower()
                 
                 if relicchoice == "y":
-                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic main stats.\033[0m")
+                    print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic \033[1mmain stats\033[0m.")
                     x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
                     x = [item.strip().lower() for item in x.split(",")]
                     attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
@@ -609,11 +617,14 @@ try:
                     current_rank = 1
                     for group in priority_groups:
                         attrs = [attr.strip() for attr in group.split("=")]
+                        index = 0
                         for attr in attrs:
+                            attr = attr.replace("%","")
                             if attr not in coreAttributes + ["atk%","def%","hp%","effect res"]:
                                 raise ValueError(f"Invalid attribute supplied: '{attr}'")
                             if attr in ["atk", "def", "hp"]:
-                                attr += "%"
+                                attrs[index] += "%"
+                            index += 1
                         for attr in attrs:
                             prio_dict[attr] = current_rank
                         current_rank += 1
