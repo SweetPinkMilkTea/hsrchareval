@@ -55,21 +55,20 @@ def validate(rawdata):
         return {"success": True,"message": "OK"}
 
 # targets: Info about correct Main Stats and prioritized Subs
-def analyse(relics: list, targets: dict):
+def analyse(relics: list, targets: dict, debug: bool = False):
     result = {
-        "relics":[],
+        "relics": [],
         "fullscore": 0,
-        "flags":
-            {
+        "flags": {
             "setfaults": 0,
             "mainfaults": 0
-            }
+        }
     }
         
-    # Check Set config
-    set_faults = 0
+    # --- Check Set config ---
     setarray = [piece["set"] for piece in relics]
     counter = Counter(setarray)
+    set_faults = 0
     for count in counter.values():
         if count not in (2, 4):
             set_faults += 1
@@ -78,12 +77,14 @@ def analyse(relics: list, targets: dict):
     pieceindex = 0
     
     for piece in relics:
-        ### Check Main Stats
+        if debug: 
+            print(f"\n=== Analyzing piece {pieceindex+1} ({piece['set']}) ===")
+        
+        ### --- Check Main Stats ---
         mainkey = piece["main"]["key"]
-        mainstattargets = ["hp","atk"] + targets["main"]
+        mainstattargets = ["hp", "atk"] + targets["main"]
         targetkey = mainstattargets[pieceindex]
         
-        # Check for main faults
         main_fault = mainkey != targetkey
         low_fault_impact = (mainkey.endswith("dmg") or mainkey.endswith("atk")) and (targetkey.endswith("dmg") or targetkey.endswith("atk"))
         
@@ -92,28 +93,27 @@ def analyse(relics: list, targets: dict):
         
         ev_mainstat = {"key": mainkey, "target": targetkey}
         
-        ### Check Subs and calc score
+        ### --- Check Subs and calc score ---
         minus_one_roll = sum([x["count"] for x in piece["sub"]]) < 9
         
         substatprio = dcp(targets["sub"])
         
-        # If mainstat is present in prio, shift other keys upward if applicable
         if mainkey in substatprio:
             removed_value = substatprio[mainkey]
             del substatprio[mainkey]
-
-            # Check if the removed value still exists in the remaining values
             if removed_value not in substatprio.values():
-                # Shift all values higher than the removed_value downward by 1
                 for key in substatprio:
                     if substatprio[key] > removed_value:
                         substatprio[key] -= 1
         
-        # If prio contains less than 4 keys, give "grace rolls" to avoid forced penalties
         grace = 4 - min([4, len(substatprio)])
         
-                                
-        flatstattriggers = [x.replace("%","") for x in substatprio.keys() if x.endswith("%")]
+        flatstattriggers = [k for k in substatprio.keys() if k in ("atk", "def", "hp")]
+
+        
+        if debug:
+            print(f"Priority: {substatprio}")
+            print(f"Flat triggers (base keys): {flatstattriggers}")
         
         ev_substats = []
         substatscores = []
@@ -122,21 +122,38 @@ def analyse(relics: list, targets: dict):
             value = substat["value"]
             count = substat["count"]
             
-            if key in substatprio or key in flatstattriggers:
-                distibution = roll_dist[key]
+            basekey = key.replace("%", "") if key.endswith("%") else key
+            
+            if basekey in substatprio:
+                priokey = basekey
+                distibution = roll_dist[key]  # assumes global roll_dist
                 avg_roll = value / count
                 saturation = (avg_roll - distibution[0]) / (distibution[1] - distibution[0])
-                priokey = key + "%" if key in flatstattriggers else key
                 weight = 1 - (0.2 * (substatprio[priokey] - 1))
-                if key in flatstattriggers:
+                
+                # Penalize *only* flat versions of atk/def/hp
+                if basekey in ("atk", "def", "hp") and not key.endswith("%"):
                     weight *= 0.4
             else:
+                priokey = None
                 saturation = 0
                 weight = 0
             
             score = round(100 * (0.8 + (0.2 * saturation)) * weight, 2)
             
-            ev_substats.append({"key":key,"value":value,"count":count,"score":score,"saturation":saturation,"weight":weight})
+            if debug:
+                print(f" Substat {key} (val={value}, rolls={count}) → "
+                      f"prio={priokey}, sat={saturation:.3f}, weight={weight:.3f}, score={score}")
+            
+            ev_substats.append({
+                "key": key,
+                "value": value,
+                "count": count,
+                "score": score,
+                "saturation": saturation,
+                "weight": weight
+            })
+            
             for i in range(count):
                 if grace == 0 or score > 0:
                     substatscores.append(score)
@@ -146,28 +163,25 @@ def analyse(relics: list, targets: dict):
         if minus_one_roll:
             substatscores.append(0)        
         
-        # Finalize Score
-        score = sum([x for x in substatscores]) / len(substatscores)
+        score = sum(substatscores) / len(substatscores) if substatscores else 0
         if main_fault:
             score *= 0.2 if low_fault_impact else 0.9
         else:
             score = 10 + score * 0.9 if pieceindex > 1 else score
         score = round(score, 2)
         
-        # Assemble and continue
         result["relics"].append({
-            "score":score,
-            "main":ev_mainstat,
-            "sub":ev_substats,
+            "score": score,
+            "main": ev_mainstat,
+            "sub": ev_substats,
             "flags": {
                 "minusone": minus_one_roll,
                 "mainfault": main_fault
             }
-            })
+        })
         pieceindex += 1
     
-    # Calculate overall score
     scorearray = [x["score"] for x in result["relics"]]
-    result["fullscore"] = round((sum(scorearray) / len(scorearray)), 2)
+    result["fullscore"] = round((sum(scorearray) / len(scorearray)), 2) if scorearray else 0
     
     return result
