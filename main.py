@@ -685,6 +685,8 @@ try:
                 with open(configutil.PATHS.bridgedata,"w") as f:
                     json.dump(bridgedata,f)
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
+            except KeyboardInterrupt:
+                continue
             except:
                 input("\n\033[31m[ Error. Aborting. ]\033[0m")
                 continue
