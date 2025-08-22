@@ -127,7 +127,7 @@ def analyse(relics: list, targets: dict):
                 avg_roll = value / count
                 saturation = (avg_roll - distibution[0]) / (distibution[1] - distibution[0])
                 priokey = key + "%" if key in flatstattriggers else key
-                weight = 1 - (0.2 * substatprio[priokey])
+                weight = 1 - (0.2 * (substatprio[priokey] - 1))
                 if key in flatstattriggers:
                     weight *= 0.4
             else:
