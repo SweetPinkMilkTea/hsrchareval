@@ -108,11 +108,11 @@ def analyse(relics: list, targets: dict, debug: bool = False):
         
         grace = 4 - min([4, len(substatprio)])
         
-        flatstattriggers = [k for k in substatprio.keys() if k in ("atk", "def", "hp")]
+        flatstattriggers = [k.replace("%","") for k in substatprio.keys() if k in ("atk%", "def%", "hp%")]
 
         
         if debug:
-            print(f"Priority: {substatprio}")
+            print(f"Priority: {substatprio} (Grace {grace})")
             print(f"Flat triggers (base keys): {flatstattriggers}")
         
         ev_substats = []
@@ -122,17 +122,15 @@ def analyse(relics: list, targets: dict, debug: bool = False):
             value = substat["value"]
             count = substat["count"]
             
-            basekey = key.replace("%", "") if key.endswith("%") else key
-            
-            if basekey in substatprio:
-                priokey = basekey
+            if key in list(substatprio.keys()) + flatstattriggers:
+                priokey = key + ("%" if key in flatstattriggers else "")
                 distibution = roll_dist[key]  # assumes global roll_dist
                 avg_roll = value / count
                 saturation = (avg_roll - distibution[0]) / (distibution[1] - distibution[0])
                 weight = 1 - (0.2 * (substatprio[priokey] - 1))
                 
-                # Penalize *only* flat versions of atk/def/hp
-                if basekey in ("atk", "def", "hp") and not key.endswith("%"):
+                # Penalize flattriggers
+                if key in flatstattriggers:
                     weight *= 0.4
             else:
                 priokey = None
@@ -179,6 +177,10 @@ def analyse(relics: list, targets: dict, debug: bool = False):
                 "mainfault": main_fault
             }
         })
+        
+        if debug:
+            print(f"\nPiece Score: {score} ({substatscores})")
+            
         pieceindex += 1
     
     scorearray = [x["score"] for x in result["relics"]]
