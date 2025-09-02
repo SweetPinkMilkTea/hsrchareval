@@ -561,7 +561,7 @@ try:
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
-                    input("\n\033[38;5;202m[ Character is already present. Enter: Continue / CTRL+C: Cancel. ]\033[0m")
+                    input("\n\033[38;5;202m[ Continue updating present character data? Enter: Continue / CTRL+C: Cancel. ]\033[0m")
                 except:
                     continue
             else:
@@ -601,17 +601,20 @@ try:
                     print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic \033[1mmain stats\033[0m.")
                     x = input("\033[38;5;240mSeperate with comma and start with Body:\n\033[0m> \033[38;5;202m")
                     x = [item.strip().lower() for item in x.split(",")]
+                    if len(x) != 4:
+                        raise ValueError(f"Expected 4 attributes, got {len(x)}")
                     attr_ok = set(attr for attr in coreAttributes + supplementaryAttributes)
                     xs = [item.strip() for item in x if item.lower() in attr_ok]
                     xn = [item.strip() for item in x if item.lower() not in attr_ok]
                     if len(xs) == 4:
                         relics[target]["prio"]["main"] = xs
                     else:
-                        print(x, xs, attr_ok)
                         raise ValueError(f"Invalid attribute(s): {", ".join(xn)}")
 
                     print("\033[0m\nEnter Relic Priority:\nList attributes desirable on relic sub stats.\033[0m")
                     x = input("\033[38;5;240mSeperate with either:\n- '>' (former more important) or \n- '=' (equal):\n\033[0m> \033[38;5;202m")
+                    if not re.fullmatch(r"^[A-Za-z ]+(?:[=>][A-Za-z ]+){2,}$", x):
+                        raise ValueError(f"Badly formed attributes supplied.")
                     priority_groups = [group.strip() for group in x.lower().split(">")]
                     prio_dict = {}
                     current_rank = 1
@@ -641,11 +644,12 @@ try:
                 with open(configutil.PATHS.characters,"r") as f:
                     characters = json.load(f)
 
-                if [key for key, value in breakpoints[target].items() if value == -1 and key not in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key not in coreAttributes] and target in characters:
-                    print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
-                    del characters[target]
-                    with open(configutil.PATHS.characters,"w") as f:
-                        json.dump(characters,f)
+                if target in prev_breakpoints:
+                    if [key for key, value in breakpoints[target].items() if value == -1 and key not in coreAttributes] != [key for key, value in prev_breakpoints[target].items() if value == -1 and key not in coreAttributes] and target in characters:
+                        print("\n\033[38;5;202m[!] Relevant breakpoint keys have changed. Character data has been reset.\033[0m")
+                        del characters[target]
+                        with open(configutil.PATHS.characters,"w") as f:
+                            json.dump(characters,f)
                 with open(configutil.PATHS.breakpoints,"w") as f:
                     json.dump(breakpoints,f)
                 with open(configutil.PATHS.bridgedata,"w") as f:
