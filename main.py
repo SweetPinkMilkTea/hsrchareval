@@ -659,7 +659,7 @@ try:
                 input("\n\033[38;5;40m[ Done. ]\033[0m")
             except ValueError as e:
                 breakpoints = prev_breakpoints
-                input(f"\n\033[31m[ {str(e)} ]\033[0m")
+                input(f"\n\033[31m[ Reverting. {str(e)} ]\033[0m")
                 continue
             except KeyboardInterrupt:
                 breakpoints = prev_breakpoints
@@ -1036,6 +1036,6 @@ try:
                     input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
-    input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\033[0m")
+    input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\n\nHave you followed the installation intructions?\033[0m")
 except Exception:
-    input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\033[0m")
+    input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\n\nPlease report this issue here:\nhttps://github.com/SweetPinkMilkTea/hsrchareval/issues\033[0m")
