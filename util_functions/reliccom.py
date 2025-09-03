@@ -98,6 +98,7 @@ def analyse(relics: list, targets: dict, debug: bool = False):
         
         substatprio = dcp(targets["sub"])
         
+        # Remove Substat Prio from piece if it's a main stat
         if mainkey in substatprio:
             removed_value = substatprio[mainkey]
             del substatprio[mainkey]
@@ -106,6 +107,19 @@ def analyse(relics: list, targets: dict, debug: bool = False):
                     if substatprio[key] > removed_value:
                         substatprio[key] -= 1
         
+        # Prio adjustments if subs are spotted in piece
+        maxDepth = max(list(substatprio.values()))
+        passedLevel = 0
+        for level in range(1, 1+maxDepth):
+            levelKeys = [k for k, v in targets.items() if v == level]
+            if all(elem in piece["sub"] for elem in levelKeys):
+                passedLevel += 1
+            else:
+                break
+
+        substatprio = {k: max(1, v - passedLevel) for k, v in substatprio.items()}
+        
+        # Grace removes unavoidable 0-score rolls (due to <4 subprio)
         grace = 4 - min([4, len(substatprio)])
         
         flatstattriggers = [k.replace("%","") for k in substatprio.keys() if k in ("atk%", "def%", "hp%")]
