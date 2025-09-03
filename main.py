@@ -561,7 +561,7 @@ try:
             print("\033[0m",end="")
             if target in breakpoints.keys():
                 try:
-                    input("\n\033[38;5;202m[ Continue updating present character data? Enter: Continue / CTRL+C: Cancel. ]\033[0m")
+                    input("\n\033[38;5;202m[ Continue updating character breakpoints? This will delete present data. ]\n[ Enter: Continue / CTRL+C: Cancel. ]\033[0m")
                 except:
                     continue
             else:
@@ -948,7 +948,7 @@ try:
                     shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
                     input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
                 if lm == 2:
-                    target = input("Target Name:").strip().lower()
+                    target = input("Target Name: ").strip().lower()
                     if target in characters:
                         del characters[target]
                         if target in bridgedata:
@@ -971,7 +971,7 @@ try:
                     else:
                         input("\n\033[31m[ Entry doesn't exist in characters ]\033[0m")
                 if lm == 3:
-                    target = input("Target Name:").strip().lower()
+                    target = input("Target Name: ").strip().lower()
                     if target in breakpoints:
                         del breakpoints[target]
                         del characters[target]
@@ -995,7 +995,7 @@ try:
                     else:
                         input("\n\033[31m[ Entry doesn't exist in breakpoints ]\033[0m")
                 if lm == 4:
-                    target = input("Target Name:").strip().lower()
+                    target = input("Target Name: ").strip().lower()
                     if target in bridgedata:
                         bridgedata[target] = {}
                         with open(configutil.PATHS.characters, "w") as f:
@@ -1008,7 +1008,7 @@ try:
                     else:
                         input("\n\033[31m[ Entry doesn't exist or has no bridges ]\033[0m")
                 if lm == 5:
-                    target = input("Target Name:").strip().lower()
+                    target = input("Target Name: ").strip().lower()
                     if target in teams:
                         del teams[target]
                         with open(configutil.PATHS.teams, "w") as f:
