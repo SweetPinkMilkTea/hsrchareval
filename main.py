@@ -974,7 +974,8 @@ try:
                     target = input("Target Name: ").strip().lower()
                     if target in breakpoints:
                         del breakpoints[target]
-                        del characters[target]
+                        if target in characters:
+                            del characters[target]
                         if target in bridgedata:
                             del bridgedata[target]
                         tbr = None
