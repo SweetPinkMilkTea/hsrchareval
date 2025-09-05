@@ -23,7 +23,7 @@ supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "l
 
 rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"196","X":"200", "X+":"213"}
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
-rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",70:"SS", 80:"U", 90:"X", 95:"X+"}
+rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",75:"SS", 85:"U", 90:"X", 95:"X+"}
 
 def timespan(ts: int):
     "Returns a string with relative time, calculated with a UNIX timestamp."
