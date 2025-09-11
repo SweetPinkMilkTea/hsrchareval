@@ -994,18 +994,23 @@ try:
                             del characters[target]
                             if target in bridgedata:
                                 del bridgedata[target]
-                            tbr = None
+                            if target in relics:
+                                del relics[target]
+                            tbr = []
                             for team in teams.keys():
                                 if target in teams[team]:
-                                    tbr = team
-                            if tbr:
-                                del teams[tbr]
+                                    tbr.append(team)
+                            if len(tbr):
+                                for i in tbr:
+                                    teams[tbr]
                             with open(configutil.PATHS.characters, "w") as f:
                                 json.dump(characters, f)
                             with open(configutil.PATHS.breakpoints, "w") as f:
                                 json.dump(breakpoints, f)
                             with open(configutil.PATHS.bridgedata, "w") as f:
                                 json.dump(bridgedata, f)
+                            with open(configutil.PATHS.relics, "w") as f:
+                                json.dump(relics, f)
                             with open(configutil.PATHS.teams, "w") as f:
                                 json.dump(teams, f)
                             input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
@@ -1019,18 +1024,23 @@ try:
                                 del characters[target]
                             if target in bridgedata:
                                 del bridgedata[target]
-                            tbr = None
-                            for team in teams:
+                            if target in relics:
+                                del relics[target]
+                            tbr = []
+                            for team in teams.keys():
                                 if target in teams[team]:
-                                    tbr = teams[team]
-                            if tbr:
-                                del tbr
+                                    tbr.append(team)
+                            if len(tbr):
+                                for i in tbr:
+                                    teams[tbr]
                             with open(configutil.PATHS.characters, "w") as f:
                                 json.dump(characters, f)
                             with open(configutil.PATHS.breakpoints, "w") as f:
                                 json.dump(breakpoints, f)
                             with open(configutil.PATHS.bridgedata, "w") as f:
                                 json.dump(bridgedata, f)
+                            with open(configutil.PATHS.relics, "w") as f:
+                                json.dump(relics, f)
                             with open(configutil.PATHS.teams, "w") as f:
                                 json.dump(teams, f)
                             input("\n\033[38;5;40m[ Deletion complete ]\033[0m")
