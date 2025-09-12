@@ -43,6 +43,8 @@ To get started, create breakpoints for the characters you want to evaluate first
 
 The program will ask for target values for various stats. Any stats irrelevant to the performance of a character should be marked by entering `-1`.
 
+You can also set Relic priorization. When it's available for a character, the quality of it's relic loadout will also be calculated.
+
 > [!TIP]
 > The program has been written using recommended builds from [prydwen.gg](https://www.prydwen.gg/star-rail/) in mind. Visit them and use their recommendations for the most consistent program usage.
 
@@ -51,7 +53,7 @@ Once breakpoints are created, continue entering your own character information.
 Open the character edit screen with Option 3, and with the "All characters" filter, select the character you have previously created breakpoints for and enter all prompted stats.
 
 > [!TIP]
-> If you have entered your UID and your target character is part of your "Starfaring Companions" or "Support Character", their stats can be imported without the need to type them out.
+> If you have entered your UID and your target character is part of your "Starfaring Companions" or "Support Character", their stats can be imported without the need to type them out. *This is also the only way to get their relics.*
 
 Once you are done, visit your character overview located under Option 1.
 
@@ -63,7 +65,9 @@ The main menu consists of 8 Options:
 
 #### 1 | Look up characters
 
-Displays all characters you have entered and their score. Select a character by typing its index to see its stats and breakpoint requirements.
+Displays all characters you have entered and their score. Select a character by typing its index to see its stats and breakpoint requirements. 
+
+If Relic Priorization is set and relics have been imported, they will be shown and graded here too, independent of the overall attributes of the character they belong to.
 
 #### 2 | Look up teams
 
@@ -75,23 +79,36 @@ Either create or update a character you have. If you have set an UID, importing 
 
 You cannot create a character if no breakpoints have been recorded.
 
+If you have set up Relic Priorization, an import of the characters' relics is attempted. This requires a relic loadout with fully levelled 5* relics.
+
 > [!NOTE]
 > Importing a character from a UID is only possible if it's showcased ("Starfaring Companions"/"Support Character") and it's API name matches the respective breakpoint name.
 > Should these mismatch, head to the config menu to set up a mapping.
 
 #### 4 | Create/Edit teams
 
-Either create or update a team. A team must be named and consist of 4 characters.
+Either create or update a team. A team must be named and consist of at least 4 characters.
 
-Teams are good to make for comparing the overall quality of teams.
+Teams are good to make for comparing the overall quality of teams and spotting weak links within them.
 
 #### 5 | Create/Edit breakpoints
 
-Create or adjust the values used for rating characters here.
+Create or adjust the values used for rating characters here and set up Relic Priorization.
+
+##### Attributes
 
 Mark stats not relevant to the character by using the value `-1`.
 
 If a stat value is meant to be kept **under** a certain limit, mark it as inverse by typing the max. allowed value first, then typing the stat key (e.g. "SPD","ATK",...) under the inverse prompt. If multiple inverse stats are required, separate the keys with `,`.
+
+##### Relics
+
+To set up Relic Priorization, information on main and sub affixes is required:
+
+- For main affixes, enter the target keys in order - beginning with the Body piece (as Head and Glove pieces have one possible affix each). Seperate them with `,`.
+
+- For sub affixes, enter all target keys - ordered by importance. The first key is the most important, the next key priority is declared by the seperator. Use `=` to share the current priority with the next key, use `>` to declare a decrease instead.
+
 
 #### 6 | Create/Edit 'bridges'
 
@@ -134,8 +151,10 @@ This option allows for scanning characters without saving. This is best used on 
 
     You can open the folder where all data is saved as well.
 
-> [!NOTE]
-> Opening the save directory this way is only possible with graphic enviroments.
+> [!CAUTION]
+> Beware, by editing the files directly you might break something. Always keep a backup just in case.
+>
+> If you are unsure, stay safe and don't do it.
 
 ## Contributing
 
