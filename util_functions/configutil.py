@@ -112,7 +112,7 @@ def first_run_import():
                         breakpoints[target] = creation_template
             with open(PATHS.importignore,"w") as f:
                 json.dump(ignore,f)
-            with open(PATHS.breakpoints) as f:
+            with open(PATHS.breakpoints,"w") as f:
                 json.dump(breakpoints,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         except requests.exceptions.RequestException:
@@ -121,7 +121,7 @@ def first_run_import():
             input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
             raise KeyboardInterrupt()
         except Exception as e:
-            input(f"\n\033[31m[ {e} ]\033[0m")
+            input(f"\n\033[31m[ Unknown Issue: {e} ]\033[0m")
 
 def timespan(ts: int):
     "Returns a string with relative time, calculated with a UNIX timestamp."
