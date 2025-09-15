@@ -25,41 +25,6 @@ rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", 
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
 rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",75:"SS", 85:"U", 90:"X", 95:"X+"}
 
-def timespan(ts: int):
-    "Returns a string with relative time, calculated with a UNIX timestamp."
-    now = time.time()
-    diff = int(now - ts)
-
-    if diff < 0:
-        return "in the future"
-
-    units = [
-        ('year', 60 * 60 * 24 * 365),
-        ('month', 60 * 60 * 24 * 30),
-        ('week', 60 * 60 * 24 * 7),
-        ('day', 60 * 60 * 24),
-        ('hour', 60 * 60),
-        ('minute', 60),
-        ('second', 1),
-    ]
-
-    for unit_name, unit_seconds in units:
-        value = diff // unit_seconds
-        if value > 0:
-            return f"{value} {unit_name}{'s' if value > 1 else ''} ago"
-
-    return "just now"
-
-def gradescan(list: dict, mark: float):
-    "Returns a rank based on a supplied dict."
-    grade = "F"
-    for cutoff in list:
-        if mark >= cutoff:
-            grade = list[cutoff]
-        else:
-            break
-    return grade
-
 try:
     # Setup
     configutil.filesetup()
@@ -160,11 +125,11 @@ try:
                         score = f"{score:,}"
                     r_acc = characterEval[target]["stats"]["accuracy"]
                     acc = f"{r_acc:,}%"
-                    grade = gradescan(rankcutoffs_score, r_acc)
+                    grade = configutil.gradescan(rankcutoffs_score, r_acc)
                     highlight = "7;" if score[0] == "X" else ""
                     sp = ["",""]
                     sp[1 if score[0] == "X" else 0] = " "
-                    updated = timespan(characters[target]["updated"])
+                    updated = configutil.timespan(characters[target]["updated"])
                     print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{rankcolor[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
                     index += 1
                 print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
@@ -246,7 +211,7 @@ try:
                         score = f"{relic['score']:,}"
                         mainAffix = relic["main"]
                         mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
-                        grade = gradescan(rankcutoffs_relic, relic["score"])
+                        grade = configutil.gradescan(rankcutoffs_relic, relic["score"])
                         col = rankcolor[grade]
                         linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*6
                         print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
@@ -264,8 +229,8 @@ try:
                                 print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                         index += 1
                         print(f"    | \033[38;5;240m{linetype}\033[0m                      |         |         |")
-                    col = rankcolor[gradescan(rankcutoffs_relic, relicData["fullscore"])]
-                    print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
+                    col = rankcolor[configutil.gradescan(rankcutoffs_relic, relicData["fullscore"])]
+                    print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {configutil.gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                     if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
                         print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
                 else:
@@ -304,7 +269,7 @@ try:
                         for character in teams[target]:
                             cumulativescore.append(characterEval[character]["stats"]["score"])
                             cumulativeratio.append(characterEval[character]["stats"]["accuracy"])
-                            grade = gradescan(rankcutoffs_score, cumulativeratio[-1])
+                            grade = configutil.gradescan(rankcutoffs_score, cumulativeratio[-1])
                             rank_str += grade
                             team_content.append({"name":character,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
                         score = int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5))
@@ -314,7 +279,7 @@ try:
                             score = f"{score:,}"
                         r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                         acc = f"{r_acc:,}%"
-                        grade = gradescan(rankcutoffs_score, r_acc)
+                        grade = configutil.gradescan(rankcutoffs_score, r_acc)
                         print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{rankcolor[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                         teams_condense.append(team_content)
                         index += 1
@@ -369,7 +334,7 @@ try:
                         if lm == 1:
                             print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
-                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
+                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
 
             try:
                 x = input("> ")

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import json
+import time
 import requests
 from bs4 import BeautifulSoup
 
@@ -121,6 +122,41 @@ def first_run_import():
             raise KeyboardInterrupt()
         except Exception as e:
             input(f"\n\033[31m[ {e} ]\033[0m")
+
+def timespan(ts: int):
+    "Returns a string with relative time, calculated with a UNIX timestamp."
+    now = time.time()
+    diff = int(now - ts)
+
+    if diff < 0:
+        return "in the future"
+
+    units = [
+        ('year', 60 * 60 * 24 * 365),
+        ('month', 60 * 60 * 24 * 30),
+        ('week', 60 * 60 * 24 * 7),
+        ('day', 60 * 60 * 24),
+        ('hour', 60 * 60),
+        ('minute', 60),
+        ('second', 1),
+    ]
+
+    for unit_name, unit_seconds in units:
+        value = diff // unit_seconds
+        if value > 0:
+            return f"{value} {unit_name}{'s' if value > 1 else ''} ago"
+
+    return "just now"
+
+def gradescan(list: dict, mark: float):
+    "Returns a rank based on a supplied dict."
+    grade = "F"
+    for cutoff in list:
+        if mark >= cutoff:
+            grade = list[cutoff]
+        else:
+            break
+    return grade
 
 
 APP_DATA_DIR = get_app_data_path()
