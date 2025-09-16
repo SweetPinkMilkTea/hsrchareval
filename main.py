@@ -21,7 +21,17 @@ coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break eff
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
 supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res", "heal boost"]
 
-rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"196","X":"200", "X+":"213"}
+rankcolorAll = {
+    "Default":    [60 ,57 ,27 ,51 ,46 ,220,226,196,200,213],
+    "Classic":    [60 ,160,202,220,76 ,81 ,165,171,219,15 ],
+    "Monochrome": [237,239,241,243,245,247,249,251,253,255],
+    "Gradient":   [160,202,214,220,154,82 ,83 ,80 ,81 ,33 ]
+}
+labels = ["F", "D", "C", "B", "A", "S", "SS", "U", "X", "X+"]
+rankcolorMapped = {
+    scheme: dict(zip(labels, map(str, values)))
+    for scheme, values in rankcolorAll.items()
+}
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
 rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",75:"SS", 85:"U", 90:"X", 95:"X+"}
 
@@ -40,8 +50,10 @@ try:
     with open(configutil.PATHS.bridgedata) as f:
         bridgedata = json.load(f)
 
-    with open(configutil.PATHS.uid) as f:
-        uid = f.read()
+    with open(configutil.PATHS.cfg) as f:
+        conf = json.load(f)
+        uid = conf.get("uid","0")
+        rankColorPalette = conf.get("color","Default")
 
     with open(configutil.PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
@@ -55,8 +67,7 @@ try:
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
-                with open(configutil.PATHS.uid,"w") as f:
-                    f.write(str(uid))
+                configutil.cfgUpdate("uid",uid)
                 break
 
     try:
@@ -130,7 +141,8 @@ try:
                     sp = ["",""]
                     sp[1 if score[0] == "X" else 0] = " "
                     updated = configutil.timespan(characters[target]["updated"])
-                    print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{rankcolor[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                    gradecolor = rankcolorMapped[rankColorPalette][grade]
+                    print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{gradecolor}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
                     index += 1
                 print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
                 try:
@@ -212,7 +224,7 @@ try:
                         mainAffix = relic["main"]
                         mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
                         grade = configutil.gradescan(rankcutoffs_relic, relic["score"])
-                        col = rankcolor[grade]
+                        col = rankcolorMapped[rankColorPalette][grade]
                         linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*6
                         print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                         for sub in relic["sub"]:
@@ -229,7 +241,7 @@ try:
                                 print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                         index += 1
                         print(f"    | \033[38;5;240m{linetype}\033[0m                      |         |         |")
-                    col = rankcolor[configutil.gradescan(rankcutoffs_relic, relicData["fullscore"])]
+                    col = rankcolorMapped[rankColorPalette][configutil.gradescan(rankcutoffs_relic, relicData["fullscore"])]
                     print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {configutil.gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                     if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
                         print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
@@ -280,7 +292,8 @@ try:
                         r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                         acc = f"{r_acc:,}%"
                         grade = configutil.gradescan(rankcutoffs_score, r_acc)
-                        print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{rankcolor[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                        gradecolor = rankcolorMapped[rankColorPalette][grade]
+                        print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(15)}\033[0m| \033[38;5;{gradecolor}m{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                         teams_condense.append(team_content)
                         index += 1
                     print("\n\033[38;5;240mEnter ID for review characters assigned to team, CTRL + C to return.\033[0m")
@@ -301,7 +314,7 @@ try:
                     print(f"\n\033[7m NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n {namespacing*' '}|             |          |      |")
                     team = teams_condense[x]
                     for character in range(4):
-                        theme = rankcolor[teams_condense[x][character]["rank"]]
+                        theme = rankcolorMapped[rankColorPalette][teams_condense[x][character]["rank"]]
                         name = teams_condense[x][character]["name"]
                         acc = f'{teams_condense[x][character]["ratio"]:,}%'
                         grade = teams_condense[x][character]["rank"]
@@ -769,88 +782,64 @@ try:
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
             while True:
-                print("\033c\033[7m Configuration...            >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n[4] - Manage Savefile")
+                print("\033c\033[7m Configuration...            >\033[0m\n\n[1] - Appearance\n[2] - API Communication\n[3] - Savedata")
                 try:
                     lm = int(input("\n> "))
-                    if lm not in range(1,5):
+                    if lm not in range(1,4):
                         raise ValueError("Invalid Index")
                 except KeyboardInterrupt:
                     break
                 except:
                     continue
                 if lm == 1:
+                    print("\033c\033[7m Appearance                   >\033[0m\n\n[1] - Set Color Sceme\n[2] - Character Sorting (WIP)")
                     try:
-                        with open(configutil.PATHS.importignore) as f:
-                            ignore = json.load(f)
-                        creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
-                        response = requests.get("https://www.prydwen.gg/star-rail/characters")
-                        response.raise_for_status()
-                        isOffline = False
-                        cards = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
-                        entryindex = len(cards)
-                        for object in cards:
-                            objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                            if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
-                                entryindex -= 1
-                        if entryindex == 0:
-                            input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
-                            continue
-                        print(f"Expecting {entryindex} new entries.")
-                        print("0: Ignore / 1: Change name and add / 2: Directly add")
-                        for object in cards:
-                            target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                            if target not in breakpoints.keys() and target not in ignore["keys"]:
-                                while True:
-                                    index = input(f"{target.upper()} >> ")
-                                    if index.isdigit():
-                                        if int(index) <= 2 and int(index) >= 0:
-                                            index = int(index)
-                                            break
-                                if index == 0:
-                                    ignore["keys"].append(target)
-                                elif index == 1:
-                                    ignore["keys"].append(target)
-                                    target = input("Enter new ID: ").lower()
-                                    if target in breakpoints:
-                                        input("\033[38;5;202mWARNING: New ID would overwrite a breakpoint entry with same name!\nContinue with ENTER, reset and abort with CTRL C.\033[0m")
-                                    breakpoints[target] = creation_template
-                                elif index == 2:
-                                    breakpoints[target] = creation_template
-                        with open(configutil.PATHS.importignore,"w") as f:
-                            json.dump(ignore,f)
-                        with open(configutil.PATHS.breakpoints,"w") as f:
-                            json.dump(breakpoints,f)
-                        input("\n\033[38;5;40m[ Done. ]\033[0m")
-                    except requests.exceptions.RequestException:
-                        input("\n\033[31m[ Request has failed. ]\033[0m")
-                    except KeyboardInterrupt:
-                        input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
-                        raise KeyboardInterrupt()
-                    except Exception as e:
-                        input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
-                elif lm == 2:
-                    try:
-                        print("\nNew UID ('0' to disable):")
-                        while True:
-                            uid = input("> ").strip()
-                            if uid.isdigit():
-                                with open(configutil.PATHS.uid,"w") as f:
-                                    f.write(str(uid))
-                                break
-                    except:
-                        continue
-                elif lm == 3:
-                    if uid == 0:
-                        input("Feature available once UID has been set.")
-                        continue
-                    print("\033c\033[7m API Config                  >\033[0m\n\n[1] - Get API names for current UID\n[2] - Edit Name Mapping")
-                    try:
-                        lm = int(input("> "))
+                        lm = int(input("\n> "))
                         if lm not in range(1,3):
                             raise ValueError("Invalid Index")
                     except:
                         continue
                     if lm == 1:
+                        print("\033c\033[7m Color                        >\033[0m\n")
+                        i = 1
+                        for key, li in rankcolorAll.items():
+                            print(f"[{i}] - {key}\n{" ".join(f"\033[48;5;{v}m| {lbl} |\033[0m" for v, lbl in zip(li, labels))}\n")
+                            i += 1
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(1,5):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        rankColorPalette = list(rankcolorAll.keys())[lm - 1]
+                        configutil.cfgUpdate("color", rankColorPalette)
+                        input("\n\033[38;5;40m[ Color updated. ]\033[0m")
+                        break
+                    if lm == 2:
+                        input("Not ready yet")
+                
+                elif lm == 2:
+                    print("\033c\033[7m API Config                  >\033[0m\n\n[1] - Set UID\n[2] - Get API names for current UID\n[3] - Edit Name Mapping\n[4] - Search for new characters")
+                    try:
+                        lm = int(input("\n> "))
+                        if lm not in range(1,5):
+                            raise ValueError("Invalid Index")
+                    except:
+                        continue
+                    if lm == 1:
+                        try:
+                            print("\nNew UID ('0' to disable):")
+                            while True:
+                                uid = input("> ").strip()
+                                if uid.isdigit():
+                                    configutil.cfgUpdate("uid",uid)
+                                    break
+                        except:
+                            continue
+                    if lm == 2:
+                        if uid == 0:
+                            input("Feature available once UID has been set.")
+                            continue
                         try:
                             response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v2")
                             response.raise_for_status()
@@ -877,7 +866,7 @@ try:
                         print("\n\033[38;5;240mSynced  : API matches Breakpoint Identifier.\nMapped  : Name mapping has been configured.\nUnbound : Name is not known in any way.")
                         print("\nChanges to your characters ingame (Availability and Stats alike) will be reflected after a few minutes of delay.\033[0m")
                         input("\n\033[38;5;240m[ <- ]\033[0m")
-                    if lm == 2:
+                    if lm == 3:
                         while True:
                             print("\033c\033[7m Mappings                    >\033[0m\n")
                             if len(api_name_mapping) == 0:
@@ -934,7 +923,57 @@ try:
                                     input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
                             except KeyboardInterrupt:
                                 break
-                elif lm == 4:
+                    if lm == 4:
+                        try:
+                            with open(configutil.PATHS.importignore) as f:
+                                ignore = json.load(f)
+                            creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
+                            response = requests.get("https://www.prydwen.gg/star-rail/characters")
+                            response.raise_for_status()
+                            isOffline = False
+                            cards = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
+                            entryindex = len(cards)
+                            for object in cards:
+                                objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                                if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
+                                    entryindex -= 1
+                            if entryindex == 0:
+                                input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
+                                continue
+                            print(f"Expecting {entryindex} new entries.")
+                            print("0: Ignore / 1: Change name and add / 2: Directly add")
+                            for object in cards:
+                                target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                                if target not in breakpoints.keys() and target not in ignore["keys"]:
+                                    while True:
+                                        index = input(f"{target.upper()} >> ")
+                                        if index.isdigit():
+                                            if int(index) <= 2 and int(index) >= 0:
+                                                index = int(index)
+                                                break
+                                    if index == 0:
+                                        ignore["keys"].append(target)
+                                    elif index == 1:
+                                        ignore["keys"].append(target)
+                                        target = input("Enter new ID: ").lower()
+                                        if target in breakpoints:
+                                            input("\033[38;5;202mWARNING: New ID would overwrite a breakpoint entry with same name!\nContinue with ENTER, reset and abort with CTRL C.\033[0m")
+                                        breakpoints[target] = creation_template
+                                    elif index == 2:
+                                        breakpoints[target] = creation_template
+                            with open(configutil.PATHS.importignore,"w") as f:
+                                json.dump(ignore,f)
+                            with open(configutil.PATHS.breakpoints,"w") as f:
+                                json.dump(breakpoints,f)
+                            input("\n\033[38;5;40m[ Done. ]\033[0m")
+                        except requests.exceptions.RequestException:
+                            input("\n\033[31m[ Request has failed. ]\033[0m")
+                        except KeyboardInterrupt:
+                            input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
+                            raise KeyboardInterrupt()
+                        except Exception as e:
+                            input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
+                elif lm == 3:
                     with open(configutil.PATHS.characters) as f:
                         characters = json.load(f)
                     with open(configutil.PATHS.breakpoints) as f:

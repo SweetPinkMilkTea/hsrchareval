@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import json
 import time
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -33,9 +34,9 @@ def open_file_explorer(path):
         print(f"Could not open file explorer: {e}")
 
 def filesetup():
-    if not PATHS.uid.exists():
-        with open(PATHS.uid,"w") as f:
-            f.write("0")
+    if not PATHS.cfg.exists():
+        with open(PATHS.cfg,"w") as f:
+            json.dump({},f)
     if not PATHS.characters.exists():
         with open(PATHS.characters,"w") as f:
             json.dump({},f)
@@ -158,12 +159,18 @@ def gradescan(list: dict, mark: float):
             break
     return grade
 
+def cfgUpdate(key: str, object):
+    with open(PATHS.cfg) as f:
+        conf = json.load(f)
+    conf[key] = object
+    with open(PATHS.cfg, "w") as f:
+        json.dump(conf, f)
 
 APP_DATA_DIR = get_app_data_path()
 APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 class PATHS:
-    uid = APP_DATA_DIR / ".uid"
+    cfg = APP_DATA_DIR / "cfg.json"
     characters = APP_DATA_DIR / "chardata.json"
     breakpoints = APP_DATA_DIR / "breakpoints.json"
     teams = APP_DATA_DIR / "teamdata.json"
