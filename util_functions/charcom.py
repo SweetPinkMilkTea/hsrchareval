@@ -60,6 +60,8 @@ def analyseChar(breakpoints, stats, bridges, relics = None, prio = None):
                 }
             allscore.append(score)
             allratio.append(ratio)
+        else:
+            updated = int(stats[attribute])
     score = int((sum(allscore) + min(allscore)*5)/(len(allscore)+5))
     r_acc = round(sum(allratio*100)/len(allratio),2)
     result["stats"] = {
@@ -67,9 +69,35 @@ def analyseChar(breakpoints, stats, bridges, relics = None, prio = None):
         "accuracy": r_acc,
         "attributes": attributes
         }
+    result["updated"] = updated
     # Relic Scoring
     if relics is None:
         result["relics"] = {}
     else:
         result["relics"] = reliccom.analyse(relics, prio)
     return result
+
+def evalDictSort(data: dict, key: str, reverse: bool = False):
+    """
+    Analyses the dict based on the key supplied and returns a sorted list of its keys.
+    """
+    def get_value(item):
+        name, details = item
+        if key == "alpha":
+            return name
+        elif key == "update":
+            return details["updated"]
+        elif key == "score":
+            return details["stats"]["score"]
+        elif key == "acc":
+            return details["stats"]["accuracy"]
+        elif key == "relics":
+            return details["relics"]["fullscore"]
+        elif key == "bestrelic":
+            return max([x["score"] for x in details["relics"]["relics"]])
+        else:
+            raise ValueError("Sorting key could not be matched.")
+    if key != "alpha":
+        reverse = not reverse
+    sorted_items = sorted(data.items(), key=get_value, reverse=reverse)
+    return [name for name, _ in sorted_items]

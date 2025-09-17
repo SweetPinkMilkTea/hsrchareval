@@ -54,6 +54,7 @@ try:
         conf = json.load(f)
         uid = conf.get("uid","0")
         rankColorPalette = conf.get("color","Default")
+        sortingPattern = conf.get("sorting",{"pattern":"alpha","reverse":False})
 
     with open(configutil.PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
@@ -127,7 +128,7 @@ try:
                 print(f"\033c\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
                 index = 1
                 # Note: Can make custom sorted Character Lists later
-                charlist = sorted(list(characters.keys()))
+                charlist = charcom.evalDictSort(characterEval,sortingPattern["pattern"], sortingPattern["reverse"])
                 for target in charlist:
                     score = characterEval[target]["stats"]["score"]
                     if score > 100000:
@@ -816,7 +817,34 @@ try:
                         input("\n\033[38;5;40m[ Color updated. ]\033[0m")
                         break
                     if lm == 2:
-                        input("Not ready yet")
+                        print("\033c\033[7m Character Ordering            >\033[0m\n")
+                        catCol = [160,82,220]
+                        catLabels = {
+                            "Meta":["Name","Updated"],
+                            "Stats":["Score","Accuracy Rating"],
+                            "Relics":["Overall Score","Best Relic Piece"],
+                        }
+                        catCombined = [x for lst in catLabels.values() for x in lst]
+                        catAttrTranslated = ["alpha","update","score","acc","relics","bestrelic"]
+                        h = 0
+                        i = 1
+                        for cat in catLabels.keys():
+                            print(f"\033[48;5;{catCol[h]}m {cat.ljust(30)}|\033[0m")
+                            for opt in catLabels[cat]:
+                                print(f"\033[38;5;{catCol[h]}m// [{i}] {opt}\033[0m")
+                                i += 1
+                            h += 1
+                            print()
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(1,len(catCombined)+1):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        sortingPattern = {"pattern":catAttrTranslated[lm-1],"reverse":False}
+                        configutil.cfgUpdate("sorting",sortingPattern)
+                        input("\n\033[38;5;40m[ Sorting updated. ]\033[0m")
+                        break
                 
                 elif lm == 2:
                     print("\033c\033[7m API Config                  >\033[0m\n\n[1] - Set UID\n[2] - Get API names for current UID\n[3] - Edit Name Mapping\n[4] - Search for new characters")
