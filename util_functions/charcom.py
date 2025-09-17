@@ -83,20 +83,24 @@ def evalDictSort(data: dict, key: str, reverse: bool = False):
     """
     def get_value(item):
         name, details = item
-        if key == "alpha":
-            return name
-        elif key == "update":
-            return details["updated"]
-        elif key == "score":
-            return details["stats"]["score"]
-        elif key == "acc":
-            return details["stats"]["accuracy"]
-        elif key == "relics":
-            return details["relics"]["fullscore"]
-        elif key == "bestrelic":
-            return max([x["score"] for x in details["relics"]["relics"]])
-        else:
-            raise ValueError("Sorting key could not be matched.")
+        try:
+            if key == "alpha":
+                return name
+            elif key == "update":
+                return details["updated"]
+            elif key == "score":
+                return details["stats"]["score"]
+            elif key == "acc":
+                return details["stats"]["accuracy"]
+            elif key == "relics":
+                return details["relics"]["fullscore"]
+            elif key == "bestrelic":
+                return max([x["score"] for x in details["relics"]["relics"]])
+            else:
+                raise ValueError("Sorting key could not be matched.")
+        except KeyError:
+            return 0
+            
     if key != "alpha":
         reverse = not reverse
     sorted_items = sorted(data.items(), key=get_value, reverse=reverse)
