@@ -125,12 +125,13 @@ try:
                     ev_prio = None
                 characterEval[character] = charcom.analyseChar(ev_breakpoints, ev_stats, ev_bridges, ev_relics, ev_prio)
             while True:
-                print(f"\033c\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
+                print("\033c", end="")
+                print(f"\033[7m #   | NAME{(namespacing-4)*' '} | SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '} |             |          |      |")
                 index = 1
-                # Note: Can make custom sorted Character Lists later
                 charlist = charcom.evalDictSort(characterEval,sortingPattern["pattern"], sortingPattern["reverse"])
                 for target in charlist:
                     score = characterEval[target]["stats"]["score"]
+                    hasRelics = characterEval[target]["relics"] != {}
                     if score > 100000:
                         score = f"X-{score-100000:,}"
                     else:
@@ -143,8 +144,10 @@ try:
                     sp[1 if score[0] == "X" else 0] = " "
                     updated = configutil.timespan(characters[target]["updated"])
                     gradecolor = rankcolorMapped[rankColorPalette][grade]
-                    print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{gradecolor}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                    print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(namespacing)}{"\033[38;5;240m*" if hasRelics else " "}\033[0m|{sp[0]}\033[{highlight}38;5;{gradecolor}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
                     index += 1
+                if sortingPattern["pattern"] != "alpha":
+                    print(f"\n  ⇵  | {sortingPattern["pattern"].upper()}\033[0m")
                 print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
                 try:
                     x = input("> ")
@@ -793,7 +796,7 @@ try:
                 except:
                     continue
                 if lm == 1:
-                    print("\033c\033[7m Appearance                   >\033[0m\n\n[1] - Set Color Sceme\n[2] - Character Sorting (WIP)")
+                    print("\033c\033[7m Appearance                   >\033[0m\n\n[1] - Set Color Sceme\n[2] - Character Sorting")
                     try:
                         lm = int(input("\n> "))
                         if lm not in range(1,3):
