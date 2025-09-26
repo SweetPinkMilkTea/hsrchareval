@@ -821,6 +821,7 @@ try:
                         break
                     if lm == 2:
                         print("\033c\033[7m Character Ordering            >\033[0m\n")
+                        isReverse = sortingPattern["reverse"]
                         catCol = [160,82,220]
                         catLabels = {
                             "Meta":["Name","Updated"],
@@ -831,6 +832,7 @@ try:
                         catAttrTranslated = ["alpha","update","score","acc","relics","bestrelic"]
                         h = 0
                         i = 1
+                        print(f"[0] - Toggle Reverse [{"ON" if isReverse else "OFF"}]\n") 
                         for cat in catLabels.keys():
                             print(f"\033[48;5;{catCol[h]}m {cat.ljust(30)}|\033[0m")
                             for opt in catLabels[cat]:
@@ -840,11 +842,14 @@ try:
                             print()
                         try:
                             lm = int(input("\n> "))
-                            if lm not in range(1,len(catCombined)+1):
+                            if lm not in range(0,len(catCombined)+1):
                                 raise ValueError("Invalid Index")
                         except:
                             continue
-                        sortingPattern = {"pattern":catAttrTranslated[lm-1],"reverse":False}
+                        if lm > 0:
+                            sortingPattern["pattern"] = catAttrTranslated[lm-1]
+                        else:
+                            sortingPattern["reverse"] = not isReverse
                         configutil.cfgUpdate("sorting",sortingPattern)
                         input("\n\033[38;5;40m[ Sorting updated. ]\033[0m")
                         break
