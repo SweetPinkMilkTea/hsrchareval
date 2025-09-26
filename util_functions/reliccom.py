@@ -62,7 +62,8 @@ def analyse(relics: list, targets: dict, debug: bool = False):
         "flags": {
             "setfaults": 0,
             "mainfaults": 0
-        }
+        },
+        "prio":targets["sub"]
     }
         
     # --- Check Set config ---

@@ -222,7 +222,18 @@ try:
                 else:
                     print(f"\nAttribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
                 if characterEval[target]["relics"] != {}:
-                    print("\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    |                             |         |         |")
+                    priostr = ""
+                    pv = 0
+                    for key, value in characterEval[target]["relics"]["prio"].items():
+                        if pv == 0:
+                            pass
+                        elif pv < value:
+                            priostr += " > "
+                        else:
+                            priostr += " = "
+                        priostr += key.upper()
+                        pv = value
+                    print(f"\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    | \033[38;5;240m{priostr.ljust(48)}\033[0m|")
                     relicData = characterEval[target]["relics"]
                     index = 1
                     for relic in relicData["relics"]:
