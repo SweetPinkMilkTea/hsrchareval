@@ -52,7 +52,7 @@ try:
 
     with open(configutil.PATHS.cfg) as f:
         conf = json.load(f)
-        uid = conf.get("uid","0")
+        uid = conf.get("uid","-1")
         rankColorPalette = conf.get("color","Default")
         sortingPattern = conf.get("sorting",{"pattern":"alpha","reverse":False})
 
@@ -62,12 +62,14 @@ try:
     if len(breakpoints) == 0:
         configutil.first_run_import()
 
-    if uid == "0":
+    if uid == "-1":
         while True:
             print("\033c\033[7m Quick-Import Setup          >\033[0m")
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
+                if int(uid) < 0:
+                    continue
                 configutil.cfgUpdate("uid",uid)
                 break
 
