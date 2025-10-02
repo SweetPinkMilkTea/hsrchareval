@@ -3,6 +3,7 @@ import re
 import shutil
 import json
 import time
+from datetime import datetime
 import os
 import traceback
 from copy import deepcopy as dcp
@@ -1031,7 +1032,7 @@ try:
                         bridgedata = json.load(f)
                     with open(configutil.PATHS.teams) as f:
                         teams = json.load(f)
-                    print("\033c\033[7m Savedata                    >\033[0m\n\n[1] - Create a backup\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
+                    print("\033c\033[7m Savedata                    >\033[0m\n\n[1] - Backups...\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
                     try:
                         lm = int(input("\n> "))
                         if lm not in range(0,7):
@@ -1039,8 +1040,29 @@ try:
                     except:
                         continue
                     if lm == 1:
-                        shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
-                        input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                        backups = sorted(Path.home().glob("HSRCE-Backup-*.zip"), reverse=True)
+                        print("\033c\033[7m Backups                     >\033[0m\n\n[00] - Save current data\n")
+                        if not backups:
+                            print("\033[38;5;240m[ No Backups available to load ]\033[0m")
+                            maxIndex = 0
+                        else:
+                            print("Or load a Backup available:\n")
+                            for idx, backup in enumerate(backups, 1):
+                                ts = int(backup.name.split("-")[-1].split(".")[0])
+                                print(f"[{idx:02d}] - {datetime.fromtimestamp(ts).strftime('%Y/%m/%d %H:%M:%S')} ({configutil.timespan(ts)})")
+                            maxIndex = len(backups)
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(0,maxIndex+1):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        if lm == 0:
+                            shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
+                            input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                        else:
+                            shutil.unpack_archive(str(backups[lm]), str(configutil.APP_DATA_DIR), "zip")
+                            raise configutil.RefreshRequired("Data imported. Restart to load.")
                     if lm == 2:
                         target = input("Target Name: ").strip().lower()
                         if target in characters:
@@ -1135,14 +1157,16 @@ try:
                                     shutil.rmtree(file_path)
                             except Exception as e:
                                 raise Exception(f"\033[31m\nFailed to delete {file_path} ({e}).\nTry to delete the offending data yourself.\033[0m")
-                        raise Exception("Reset complete. Start the program again to start fresh.")
+                        raise configutil.RefreshRequired("Reset complete. Start the program again to start fresh.")
                     if lm == 0:
                         configutil.open_file_explorer(configutil.get_app_data_path())
                         input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
-    input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\n\nHave you followed the installation intructions?\033[0m")
+    input(f"\n\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\n\nHave you followed the installation intructions?\033[0m")
 except KeyboardInterrupt:
-    input(f"\033[38;5;40m\n\nSee you next time!\033[0m")
+    input(f"\n\033[38;5;40m\n\nSee you next time!\033[0m")
+except configutil.RefreshRequired as e:
+    input(f"\n\033[38;5;220m\n\033[7mRestart required              |\033[27m\n\n{e}")
 except:
-    input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\n\nPlease report this issue here:\nhttps://github.com/SweetPinkMilkTea/hsrchareval/issues\033[0m")
+    input(f"\n\033[31m\n\033[7mAn error occurred!            |\033[27m\n\n{traceback.format_exc()}\n\nPlease report this issue here:\nhttps://github.com/SweetPinkMilkTea/hsrchareval/issues\033[0m")

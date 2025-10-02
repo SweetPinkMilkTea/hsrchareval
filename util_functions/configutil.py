@@ -178,3 +178,6 @@ class PATHS:
     importignore = APP_DATA_DIR / "importignore.json"
     api_name_map = APP_DATA_DIR / "apinamemap.json"
     relics = APP_DATA_DIR / "relics.json"
+
+class RefreshRequired(Exception):
+    pass
