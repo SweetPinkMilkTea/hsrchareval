@@ -32,6 +32,6 @@ jobs:
       - name: Upload EXE to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/HSRCharEval.exe
+          files: dist/HSRCharEval-${{ github.ref_name }}.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
