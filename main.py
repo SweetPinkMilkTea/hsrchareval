@@ -265,7 +265,10 @@ try:
                         print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
                 else:
                     print("\n[\033[38;5;240mi] No relics (and/or breakpoints) available to evaluate.\033[0m")
-                input("\n\033[38;5;240m[ <- ]\033[0m")
+                try:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                except:
+                    pass
         if menuindex == 2:
             try:
                 if len(teams) == 0:
@@ -1060,6 +1063,7 @@ try:
                         if lm == 0:
                             shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
                             input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                            continue
                         else:
                             shutil.unpack_archive(str(backups[lm]), str(configutil.APP_DATA_DIR), "zip")
                             raise configutil.RefreshRequired("Data imported. Restart to load.")
