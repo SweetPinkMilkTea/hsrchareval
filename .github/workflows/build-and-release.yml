@@ -27,7 +27,7 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller --onefile --name=HSRCharEval main.py
+          pyinstaller --onefile --name=HSRCharEval-${{ github.ref_name }} --icon=hsrce.ico main.py
 
       - name: Upload EXE to release
         uses: softprops/action-gh-release@v2

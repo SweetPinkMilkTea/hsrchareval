@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 import subprocess
 import json
+import time
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -32,9 +34,9 @@ def open_file_explorer(path):
         print(f"Could not open file explorer: {e}")
 
 def filesetup():
-    if not PATHS.uid.exists():
-        with open(PATHS.uid,"w") as f:
-            f.write("0")
+    if not PATHS.cfg.exists():
+        with open(PATHS.cfg,"w") as f:
+            json.dump({},f)
     if not PATHS.characters.exists():
         with open(PATHS.characters,"w") as f:
             json.dump({},f)
@@ -111,7 +113,7 @@ def first_run_import():
                         breakpoints[target] = creation_template
             with open(PATHS.importignore,"w") as f:
                 json.dump(ignore,f)
-            with open(PATHS.breakpoints) as f:
+            with open(PATHS.breakpoints,"w") as f:
                 json.dump(breakpoints,f)
             input("\n\033[38;5;40m[ Done. ]\033[0m")
         except requests.exceptions.RequestException:
@@ -120,14 +122,55 @@ def first_run_import():
             input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
             raise KeyboardInterrupt()
         except Exception as e:
-            input(f"\n\033[31m[ {e} ]\033[0m")
+            input(f"\n\033[31m[ Unknown Issue: {e} ]\033[0m")
 
+def timespan(ts: int):
+    "Returns a string with relative time, calculated with a UNIX timestamp."
+    now = time.time()
+    diff = int(now - ts)
+
+    if diff < 0:
+        return "in the future"
+
+    units = [
+        ('year', 60 * 60 * 24 * 365),
+        ('month', 60 * 60 * 24 * 30),
+        ('week', 60 * 60 * 24 * 7),
+        ('day', 60 * 60 * 24),
+        ('hour', 60 * 60),
+        ('minute', 60),
+        ('second', 1),
+    ]
+
+    for unit_name, unit_seconds in units:
+        value = diff // unit_seconds
+        if value > 0:
+            return f"{value} {unit_name}{'s' if value > 1 else ''} ago"
+
+    return "just now"
+
+def gradescan(list: dict, mark: float):
+    "Returns a rank based on a supplied dict."
+    grade = "F"
+    for cutoff in list:
+        if mark >= cutoff:
+            grade = list[cutoff]
+        else:
+            break
+    return grade
+
+def cfgUpdate(key: str, object):
+    with open(PATHS.cfg) as f:
+        conf = json.load(f)
+    conf[key] = object
+    with open(PATHS.cfg, "w") as f:
+        json.dump(conf, f)
 
 APP_DATA_DIR = get_app_data_path()
 APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 class PATHS:
-    uid = APP_DATA_DIR / ".uid"
+    cfg = APP_DATA_DIR / "cfg.json"
     characters = APP_DATA_DIR / "chardata.json"
     breakpoints = APP_DATA_DIR / "breakpoints.json"
     teams = APP_DATA_DIR / "teamdata.json"
@@ -135,3 +178,6 @@ class PATHS:
     importignore = APP_DATA_DIR / "importignore.json"
     api_name_map = APP_DATA_DIR / "apinamemap.json"
     relics = APP_DATA_DIR / "relics.json"
+
+class RefreshRequired(Exception):
+    pass

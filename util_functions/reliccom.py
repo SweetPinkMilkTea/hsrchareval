@@ -62,7 +62,8 @@ def analyse(relics: list, targets: dict, debug: bool = False):
         "flags": {
             "setfaults": 0,
             "mainfaults": 0
-        }
+        },
+        "prio":targets["sub"]
     }
         
     # --- Check Set config ---
@@ -108,11 +109,12 @@ def analyse(relics: list, targets: dict, debug: bool = False):
                         substatprio[key] -= 1
         
         # Prio adjustments if subs are spotted in piece
-        maxDepth = max(list(substatprio.values()))
+        piece_keys = [d["key"] for d in piece["sub"]]
+        maxDepth = max(substatprio.values())
         passedLevel = 0
         for level in range(1, 1+maxDepth):
-            levelKeys = [k for k, v in targets.items() if v == level]
-            if all(elem in piece["sub"] for elem in levelKeys):
+            levelKeys = [k for k, v in substatprio.items() if v == level]
+            if all(elem in piece_keys for elem in levelKeys):  # <-- flipped
                 passedLevel += 1
             else:
                 break

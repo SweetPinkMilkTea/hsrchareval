@@ -3,6 +3,7 @@ import re
 import shutil
 import json
 import time
+from datetime import datetime
 import os
 import traceback
 from copy import deepcopy as dcp
@@ -21,44 +22,19 @@ coreAttributes = ["hp", "def", "atk", "crit rate", "crit dmg", "spd", "break eff
 floatingCoreAttributes = ["crit rate", "crit dmg", "energy regen", "break effect", "effect hit"]
 supplementaryAttributes = ["physical dmg", "wind dmg", "fire dmg", "ice dmg", "lightning dmg", "quantum dmg", "imaginary dmg", "effect res", "heal boost"]
 
-rankcolor = {"F":"60","D":"57","C":"27","B":"51","A":"46","S":"220","SS":"226", "U":"196","X":"200", "X+":"213"}
+rankcolorAll = {
+    "Default":    [60 ,57 ,27 ,51 ,46 ,220,226,196,200,213],
+    "Classic":    [60 ,160,202,220,76 ,81 ,165,171,219,15 ],
+    "Monochrome": [237,239,241,243,245,247,249,251,253,255],
+    "Gradient":   [160,202,214,220,154,82 ,83 ,80 ,81 ,33 ]
+}
+labels = ["F", "D", "C", "B", "A", "S", "SS", "U", "X", "X+"]
+rankcolorMapped = {
+    scheme: dict(zip(labels, map(str, values)))
+    for scheme, values in rankcolorAll.items()
+}
 rankcutoffs_score = {50:"D",70:"C",80:"B",90:"A",95:"S",100:"SS"}
 rankcutoffs_relic = {10:"D",30:"C",45:"B",55:"A",65:"S",75:"SS", 85:"U", 90:"X", 95:"X+"}
-
-def timespan(ts: int):
-    "Returns a string with relative time, calculated with a UNIX timestamp."
-    now = time.time()
-    diff = int(now - ts)
-
-    if diff < 0:
-        return "in the future"
-
-    units = [
-        ('year', 60 * 60 * 24 * 365),
-        ('month', 60 * 60 * 24 * 30),
-        ('week', 60 * 60 * 24 * 7),
-        ('day', 60 * 60 * 24),
-        ('hour', 60 * 60),
-        ('minute', 60),
-        ('second', 1),
-    ]
-
-    for unit_name, unit_seconds in units:
-        value = diff // unit_seconds
-        if value > 0:
-            return f"{value} {unit_name}{'s' if value > 1 else ''} ago"
-
-    return "just now"
-
-def gradescan(list: dict, mark: float):
-    "Returns a rank based on a supplied dict."
-    grade = "F"
-    for cutoff in list:
-        if mark >= cutoff:
-            grade = list[cutoff]
-        else:
-            break
-    return grade
 
 try:
     # Setup
@@ -75,8 +51,11 @@ try:
     with open(configutil.PATHS.bridgedata) as f:
         bridgedata = json.load(f)
 
-    with open(configutil.PATHS.uid) as f:
-        uid = f.read()
+    with open(configutil.PATHS.cfg) as f:
+        conf = json.load(f)
+        uid = conf.get("uid","-1")
+        rankColorPalette = conf.get("color","Default")
+        sortingPattern = conf.get("sorting",{"pattern":"alpha","reverse":False})
 
     with open(configutil.PATHS.api_name_map) as f:
         api_name_mapping = json.load(f)
@@ -84,14 +63,15 @@ try:
     if len(breakpoints) == 0:
         configutil.first_run_import()
 
-    if uid == "0":
+    if uid == "-1":
         while True:
             print("\033c\033[7m Quick-Import Setup          >\033[0m")
             print("\nEnter your UID to look for character data when trying to evaluate them.\nOnly characters featured on your profile page can be accessed.\n\n\033[38;5;240mEnter 0 to skip.\033[0m")
             uid = input("\n> ").strip()
             if uid.isdigit():
-                with open(configutil.PATHS.uid,"w") as f:
-                    f.write(str(uid))
+                if int(uid) < 0:
+                    continue
+                configutil.cfgUpdate("uid",uid)
                 break
 
     try:
@@ -148,25 +128,29 @@ try:
                     ev_prio = None
                 characterEval[character] = charcom.analyseChar(ev_breakpoints, ev_stats, ev_bridges, ev_relics, ev_prio)
             while True:
-                print(f"\033c\033[7m #   | NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '}|             |          |      |")
+                print("\033c", end="")
+                print(f"\033[7m #   | NAME{(namespacing-4)*' '} | SCORE       | ACC      | RANK |\033[0m\n     | {namespacing*' '} |             |          |      |")
                 index = 1
-                # Note: Can make custom sorted Character Lists later
-                charlist = sorted(list(characters.keys()))
+                charlist = charcom.evalDictSort(characterEval,sortingPattern["pattern"], sortingPattern["reverse"])
                 for target in charlist:
                     score = characterEval[target]["stats"]["score"]
+                    hasRelics = characterEval[target]["relics"] != {}
                     if score > 100000:
                         score = f"X-{score-100000:,}"
                     else:
                         score = f"{score:,}"
                     r_acc = characterEval[target]["stats"]["accuracy"]
                     acc = f"{r_acc:,}%"
-                    grade = gradescan(rankcutoffs_score, r_acc)
+                    grade = configutil.gradescan(rankcutoffs_score, r_acc)
                     highlight = "7;" if score[0] == "X" else ""
                     sp = ["",""]
                     sp[1 if score[0] == "X" else 0] = " "
-                    updated = timespan(characters[target]["updated"])
-                    print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(namespacing)}\033[0m|{sp[0]}\033[{highlight}38;5;{rankcolor[grade]}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
+                    updated = configutil.timespan(characters[target]["updated"])
+                    gradecolor = rankcolorMapped[rankColorPalette][grade]
+                    print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(namespacing)}{"\033[38;5;240m*" if hasRelics else " "}\033[0m|{sp[0]}\033[{highlight}38;5;{gradecolor}m{sp[1]}{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m{updated}\033[0m")
                     index += 1
+                if sortingPattern["pattern"] != "alpha":
+                    print(f"\n  ⇵  | {sortingPattern["pattern"].upper()}\033[0m")
                 print("\n\033[38;5;240mEnter ID for detailed overview, CTRL + C to return.\033[0m")
                 try:
                     x = input("> ")
@@ -239,15 +223,26 @@ try:
                 else:
                     print(f"\nAttribute Score: {int(score):,} \033[38;5;240m({int(acc):,}% acc)")
                 if characterEval[target]["relics"] != {}:
-                    print("\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    |                             |         |         |")
+                    priostr = ""
+                    pv = 0
+                    for key, value in characterEval[target]["relics"]["prio"].items():
+                        if pv == 0:
+                            pass
+                        elif pv < value:
+                            priostr += " > "
+                        else:
+                            priostr += " = "
+                        priostr += key.upper()
+                        pv = value
+                    print(f"\n\033[38;5;240mRelics\n\033[0m\033[7m PC | DETAILS                     | SCORE   | EFFI    |\033[0m\n    | \033[38;5;240m{priostr.ljust(48)}\033[0m|")
                     relicData = characterEval[target]["relics"]
                     index = 1
                     for relic in relicData["relics"]:
                         score = f"{relic['score']:,}"
                         mainAffix = relic["main"]
                         mainAffixDisplay = mainAffix['key'].upper() if not relic["flags"]["mainfault"] else f"{mainAffix['key'].upper()} [!= {relics[target]['prio']['main'][index-3].upper()}]"
-                        grade = gradescan(rankcutoffs_relic, relic["score"])
-                        col = rankcolor[grade]
+                        grade = configutil.gradescan(rankcutoffs_relic, relic["score"])
+                        col = rankcolorMapped[rankColorPalette][grade]
                         linetype = "[!] 3l" if relic["flags"]["minusone"] else " "*6
                         print(f"\033[7;38;5;{col}m {index:02d} | {mainAffixDisplay.ljust(27)} | {score.ljust(7)} |   {grade.rjust(2)}    |\033[0m")
                         for sub in relic["sub"]:
@@ -264,13 +259,16 @@ try:
                                 print(f"    | \033[38;5;240m{statString.ljust(27)}\033[0m | \033[38;5;240m   X   \033[0m | \033[38;5;240m   X   \033[0m |")
                         index += 1
                         print(f"    | \033[38;5;240m{linetype}\033[0m                      |         |         |")
-                    col = rankcolor[gradescan(rankcutoffs_relic, relicData["fullscore"])]
-                    print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
+                    col = rankcolorMapped[rankColorPalette][configutil.gradescan(rankcutoffs_relic, relicData["fullscore"])]
+                    print(f"\nRelic Score: \033[38;5;{col}m{relicData["fullscore"]} (Grade \033[7m {configutil.gradescan(rankcutoffs_relic, relicData["fullscore"]).ljust(2)} \033[27m)\033[0m")
                     if relicData["flags"]["mainfaults"] > 0 or relicData["flags"]["setfaults"] > 0:
                         print(f"\nMainstat Faults: {relicData['flags']['mainfaults']}\nSet Faults: {relicData['flags']['setfaults']}")
                 else:
                     print("\n[\033[38;5;240mi] No relics (and/or breakpoints) available to evaluate.\033[0m")
-                input("\n\033[38;5;240m[ <- ]\033[0m")
+                try:
+                    input("\n\033[38;5;240m[ <- ]\033[0m")
+                except:
+                    pass
         if menuindex == 2:
             try:
                 if len(teams) == 0:
@@ -304,7 +302,7 @@ try:
                         for character in teams[target]:
                             cumulativescore.append(characterEval[character]["stats"]["score"])
                             cumulativeratio.append(characterEval[character]["stats"]["accuracy"])
-                            grade = gradescan(rankcutoffs_score, cumulativeratio[-1])
+                            grade = configutil.gradescan(rankcutoffs_score, cumulativeratio[-1])
                             rank_str += grade
                             team_content.append({"name":character,"rank":grade,"score":cumulativescore[-1],"ratio":cumulativeratio[-1]})
                         score = int((sum(cumulativescore) + min(cumulativescore)*5)/(len(cumulativescore)+5))
@@ -314,8 +312,9 @@ try:
                             score = f"{score:,}"
                         r_acc = round(sum(cumulativeratio)/len(cumulativeratio),2)
                         acc = f"{r_acc:,}%"
-                        grade = gradescan(rankcutoffs_score, r_acc)
-                        print(f" \033[38;5;{rankcolor[grade]}m{index:03d} \033[0m| \033[38;5;{rankcolor[grade]}m{target.upper().ljust(15)}\033[0m| \033[38;5;{rankcolor[grade]}m{score.ljust(12)}\033[0m| \033[38;5;{rankcolor[grade]}m{acc.ljust(9)}\033[0m| \033[38;5;{rankcolor[grade]}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
+                        grade = configutil.gradescan(rankcutoffs_score, r_acc)
+                        gradecolor = rankcolorMapped[rankColorPalette][grade]
+                        print(f" \033[38;5;{gradecolor}m{index:03d} \033[0m| \033[38;5;{gradecolor}m{target.upper().ljust(15)}\033[0m| \033[38;5;{gradecolor}m{score.ljust(12)}\033[0m| \033[38;5;{gradecolor}m{acc.ljust(9)}\033[0m| \033[38;5;{gradecolor}m\033[7m {grade.ljust(3)}\033[0m | \033[38;5;240m ({rank_str})")
                         teams_condense.append(team_content)
                         index += 1
                     print("\n\033[38;5;240mEnter ID for review characters assigned to team, CTRL + C to return.\033[0m")
@@ -336,7 +335,7 @@ try:
                     print(f"\n\033[7m NAME{(namespacing-4)*' '}| SCORE       | ACC      | RANK |\033[0m\n {namespacing*' '}|             |          |      |")
                     team = teams_condense[x]
                     for character in range(4):
-                        theme = rankcolor[teams_condense[x][character]["rank"]]
+                        theme = rankcolorMapped[rankColorPalette][teams_condense[x][character]["rank"]]
                         name = teams_condense[x][character]["name"]
                         acc = f'{teams_condense[x][character]["ratio"]:,}%'
                         grade = teams_condense[x][character]["rank"]
@@ -369,7 +368,7 @@ try:
                         if lm == 1:
                             print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
                     else:
-                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
+                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
 
             try:
                 x = input("> ")
@@ -804,88 +803,96 @@ try:
             input("\n\033[38;5;240m[ <- ]\033[0m")
         if menuindex == 0:
             while True:
-                print("\033c\033[7m Configuration...            >\033[0m\n\n[1] - Fetch new characters\n[2] - Set UID\n[3] - API name translation\n[4] - Manage Savefile")
+                print("\033c\033[7m Configuration...            >\033[0m\n\n[1] - Appearance\n[2] - API Communication\n[3] - Savedata")
                 try:
                     lm = int(input("\n> "))
-                    if lm not in range(1,5):
+                    if lm not in range(1,4):
                         raise ValueError("Invalid Index")
                 except KeyboardInterrupt:
                     break
                 except:
                     continue
                 if lm == 1:
+                    print("\033c\033[7m Appearance                   >\033[0m\n\n[1] - Set Color Sceme\n[2] - Character Sorting")
                     try:
-                        with open(configutil.PATHS.importignore) as f:
-                            ignore = json.load(f)
-                        creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
-                        response = requests.get("https://www.prydwen.gg/star-rail/characters")
-                        response.raise_for_status()
-                        isOffline = False
-                        cards = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
-                        entryindex = len(cards)
-                        for object in cards:
-                            objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                            if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
-                                entryindex -= 1
-                        if entryindex == 0:
-                            input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
-                            continue
-                        print(f"Expecting {entryindex} new entries.")
-                        print("0: Ignore / 1: Change name and add / 2: Directly add")
-                        for object in cards:
-                            target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
-                            if target not in breakpoints.keys() and target not in ignore["keys"]:
-                                while True:
-                                    index = input(f"{target.upper()} >> ")
-                                    if index.isdigit():
-                                        if int(index) <= 2 and int(index) >= 0:
-                                            index = int(index)
-                                            break
-                                if index == 0:
-                                    ignore["keys"].append(target)
-                                elif index == 1:
-                                    ignore["keys"].append(target)
-                                    target = input("Enter new ID: ").lower()
-                                    if target in breakpoints:
-                                        input("\033[38;5;202mWARNING: New ID would overwrite a breakpoint entry with same name!\nContinue with ENTER, reset and abort with CTRL C.\033[0m")
-                                    breakpoints[target] = creation_template
-                                elif index == 2:
-                                    breakpoints[target] = creation_template
-                        with open(configutil.PATHS.importignore,"w") as f:
-                            json.dump(ignore,f)
-                        with open(configutil.PATHS.breakpoints,"w") as f:
-                            json.dump(breakpoints,f)
-                        input("\n\033[38;5;40m[ Done. ]\033[0m")
-                    except requests.exceptions.RequestException:
-                        input("\n\033[31m[ Request has failed. ]\033[0m")
-                    except KeyboardInterrupt:
-                        input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
-                        raise KeyboardInterrupt()
-                    except Exception as e:
-                        input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
-                elif lm == 2:
-                    try:
-                        print("\nNew UID ('0' to disable):")
-                        while True:
-                            uid = input("> ").strip()
-                            if uid.isdigit():
-                                with open(configutil.PATHS.uid,"w") as f:
-                                    f.write(str(uid))
-                                break
-                    except:
-                        continue
-                elif lm == 3:
-                    if uid == 0:
-                        input("Feature available once UID has been set.")
-                        continue
-                    print("\033c\033[7m API Config                  >\033[0m\n\n[1] - Get API names for current UID\n[2] - Edit Name Mapping")
-                    try:
-                        lm = int(input("> "))
+                        lm = int(input("\n> "))
                         if lm not in range(1,3):
                             raise ValueError("Invalid Index")
                     except:
                         continue
                     if lm == 1:
+                        print("\033c\033[7m Color                        >\033[0m\n")
+                        i = 1
+                        for key, li in rankcolorAll.items():
+                            print(f"[{i}] - {key}\n{" ".join(f"\033[48;5;{v}m| {lbl} |\033[0m" for v, lbl in zip(li, labels))}\n")
+                            i += 1
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(1,5):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        rankColorPalette = list(rankcolorAll.keys())[lm - 1]
+                        configutil.cfgUpdate("color", rankColorPalette)
+                        input("\n\033[38;5;40m[ Color updated. ]\033[0m")
+                        break
+                    if lm == 2:
+                        print("\033c\033[7m Character Ordering            >\033[0m\n")
+                        isReverse = sortingPattern["reverse"]
+                        catCol = [160,82,220]
+                        catLabels = {
+                            "Meta":["Name","Updated"],
+                            "Stats":["Score","Accuracy Rating"],
+                            "Relics":["Overall Score","Best Relic Piece"],
+                        }
+                        catCombined = [x for lst in catLabels.values() for x in lst]
+                        catAttrTranslated = ["alpha","update","score","acc","relics","bestrelic"]
+                        h = 0
+                        i = 1
+                        print(f"[0] - Toggle Reverse [{"ON" if isReverse else "OFF"}]\n") 
+                        for cat in catLabels.keys():
+                            print(f"\033[48;5;{catCol[h]}m {cat.ljust(30)}|\033[0m")
+                            for opt in catLabels[cat]:
+                                print(f"\033[38;5;{catCol[h]}m// [{i}] {opt}\033[0m")
+                                i += 1
+                            h += 1
+                            print()
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(0,len(catCombined)+1):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        if lm > 0:
+                            sortingPattern["pattern"] = catAttrTranslated[lm-1]
+                        else:
+                            sortingPattern["reverse"] = not isReverse
+                        configutil.cfgUpdate("sorting",sortingPattern)
+                        input("\n\033[38;5;40m[ Sorting updated. ]\033[0m")
+                        break
+                
+                elif lm == 2:
+                    print("\033c\033[7m API Config                  >\033[0m\n\n[1] - Set UID\n[2] - Get API names for current UID\n[3] - Edit Name Mapping\n[4] - Search for new characters")
+                    try:
+                        lm = int(input("\n> "))
+                        if lm not in range(1,5):
+                            raise ValueError("Invalid Index")
+                    except:
+                        continue
+                    if lm == 1:
+                        try:
+                            print("\nNew UID ('0' to disable):")
+                            while True:
+                                uid = input("> ").strip()
+                                if uid.isdigit():
+                                    configutil.cfgUpdate("uid",uid)
+                                    break
+                        except:
+                            continue
+                    if lm == 2:
+                        if uid == 0:
+                            input("Feature available once UID has been set.")
+                            continue
                         try:
                             response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v2")
                             response.raise_for_status()
@@ -912,7 +919,7 @@ try:
                         print("\n\033[38;5;240mSynced  : API matches Breakpoint Identifier.\nMapped  : Name mapping has been configured.\nUnbound : Name is not known in any way.")
                         print("\nChanges to your characters ingame (Availability and Stats alike) will be reflected after a few minutes of delay.\033[0m")
                         input("\n\033[38;5;240m[ <- ]\033[0m")
-                    if lm == 2:
+                    if lm == 3:
                         while True:
                             print("\033c\033[7m Mappings                    >\033[0m\n")
                             if len(api_name_mapping) == 0:
@@ -969,7 +976,57 @@ try:
                                     input("\n\033[31m[ Unrecognized Prefix. ]\033[0m")
                             except KeyboardInterrupt:
                                 break
-                elif lm == 4:
+                    if lm == 4:
+                        try:
+                            with open(configutil.PATHS.importignore) as f:
+                                ignore = json.load(f)
+                            creation_template = {"hp":-1,"atk":-1,"def":-1,"spd":-1,"crit rate":-1,"crit dmg":-1,"break effect":-1,"energy regen":-1,"effect hit":-1,"inverse":[]}
+                            response = requests.get("https://www.prydwen.gg/star-rail/characters")
+                            response.raise_for_status()
+                            isOffline = False
+                            cards = BeautifulSoup(response.text, 'html.parser').find_all("div", {"class", "avatar-card"})
+                            entryindex = len(cards)
+                            for object in cards:
+                                objectid = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                                if not (objectid not in breakpoints.keys() and objectid not in ignore["keys"]):
+                                    entryindex -= 1
+                            if entryindex == 0:
+                                input("\n\033[38;5;40m[ You're already up to date! ]\033[0m")
+                                continue
+                            print(f"Expecting {entryindex} new entries.")
+                            print("0: Ignore / 1: Change name and add / 2: Directly add")
+                            for object in cards:
+                                target = object.find("span").find("a")["href"].split("/")[-1].replace("-"," ")
+                                if target not in breakpoints.keys() and target not in ignore["keys"]:
+                                    while True:
+                                        index = input(f"{target.upper()} >> ")
+                                        if index.isdigit():
+                                            if int(index) <= 2 and int(index) >= 0:
+                                                index = int(index)
+                                                break
+                                    if index == 0:
+                                        ignore["keys"].append(target)
+                                    elif index == 1:
+                                        ignore["keys"].append(target)
+                                        target = input("Enter new ID: ").lower()
+                                        if target in breakpoints:
+                                            input("\033[38;5;202mWARNING: New ID would overwrite a breakpoint entry with same name!\nContinue with ENTER, reset and abort with CTRL C.\033[0m")
+                                        breakpoints[target] = creation_template
+                                    elif index == 2:
+                                        breakpoints[target] = creation_template
+                            with open(configutil.PATHS.importignore,"w") as f:
+                                json.dump(ignore,f)
+                            with open(configutil.PATHS.breakpoints,"w") as f:
+                                json.dump(breakpoints,f)
+                            input("\n\033[38;5;40m[ Done. ]\033[0m")
+                        except requests.exceptions.RequestException:
+                            input("\n\033[31m[ Request has failed. ]\033[0m")
+                        except KeyboardInterrupt:
+                            input("\n\033[31m[ Aborted, closing session to reset. ]\033[0m")
+                            raise KeyboardInterrupt()
+                        except Exception as e:
+                            input(f"\n\033[31m[ Error. Closing session. ]\n033[36;5;240m{e}\033[0m")
+                elif lm == 3:
                     with open(configutil.PATHS.characters) as f:
                         characters = json.load(f)
                     with open(configutil.PATHS.breakpoints) as f:
@@ -978,7 +1035,7 @@ try:
                         bridgedata = json.load(f)
                     with open(configutil.PATHS.teams) as f:
                         teams = json.load(f)
-                    print("\033c\033[7m Savedata                    >\033[0m\n\n[1] - Create a backup\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
+                    print("\033c\033[7m Savedata                    >\033[0m\n\n[1] - Backups...\n[2] - Delete a character\n[3] - Delete a breakpoint and character\n[4] - Delete a characters bridges\n[5] - Delete a team\n[6] - Wipe save\n\n\033[38;5;240mOr, if you like tinkering:\n\n[0] - Open save directory to edit files directly\033[0m")
                     try:
                         lm = int(input("\n> "))
                         if lm not in range(0,7):
@@ -986,8 +1043,30 @@ try:
                     except:
                         continue
                     if lm == 1:
-                        shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
-                        input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                        backups = sorted(Path.home().glob("HSRCE-Backup-*.zip"), reverse=True)
+                        print("\033c\033[7m Backups                     >\033[0m\n\n[00] - Save current data\n")
+                        if not backups:
+                            print("\033[38;5;240m[ No Backups available to load ]\033[0m")
+                            maxIndex = 0
+                        else:
+                            print("Or load a Backup available:\n")
+                            for idx, backup in enumerate(backups, 1):
+                                ts = int(backup.name.split("-")[-1].split(".")[0])
+                                print(f"[{idx:02d}] - {datetime.fromtimestamp(ts).strftime('%Y/%m/%d %H:%M:%S')} ({configutil.timespan(ts)})")
+                            maxIndex = len(backups)
+                        try:
+                            lm = int(input("\n> "))
+                            if lm not in range(0,maxIndex+1):
+                                raise ValueError("Invalid Index")
+                        except:
+                            continue
+                        if lm == 0:
+                            shutil.make_archive(Path.home() / f"HSRCE-Backup-{int(time.time())}", 'zip', configutil.APP_DATA_DIR)
+                            input("\n\033[38;5;40m[ Backup created in user directory. ]\033[0m")
+                            continue
+                        else:
+                            shutil.unpack_archive(str(backups[lm]), str(configutil.APP_DATA_DIR), "zip")
+                            raise configutil.RefreshRequired("Data imported. Restart to load.")
                     if lm == 2:
                         target = input("Target Name: ").strip().lower()
                         if target in characters:
@@ -1082,14 +1161,16 @@ try:
                                     shutil.rmtree(file_path)
                             except Exception as e:
                                 raise Exception(f"\033[31m\nFailed to delete {file_path} ({e}).\nTry to delete the offending data yourself.\033[0m")
-                        raise Exception("Reset complete. Start the program again to start fresh.")
+                        raise configutil.RefreshRequired("Reset complete. Start the program again to start fresh.")
                     if lm == 0:
                         configutil.open_file_explorer(configutil.get_app_data_path())
                         input("\n\033[38;5;240m[ <- ]\033[0m")
 
 except ModuleNotFoundError:
-    input(f"\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\n\nHave you followed the installation intructions?\033[0m")
+    input(f"\n\033[31m\nOne or more modules required for this script are not installed:\n\n{traceback.format_exc()}\n\nHave you followed the installation intructions?\033[0m")
 except KeyboardInterrupt:
-    input(f"\033[38;5;40m\n\nSee you next time!\033[0m")
+    input(f"\n\033[38;5;40m\n\nSee you next time!\033[0m")
+except configutil.RefreshRequired as e:
+    input(f"\n\033[38;5;220m\n\033[7mRestart required              |\033[27m\n\n{e}")
 except:
-    input(f"\033[31m\n\033[7mAn error occurred!            |\033[27m\n{traceback.format_exc()}\n\nPlease report this issue here:\nhttps://github.com/SweetPinkMilkTea/hsrchareval/issues\033[0m")
+    input(f"\n\033[31m\n\033[7mAn error occurred!            |\033[27m\n\n{traceback.format_exc()}\n\nPlease report this issue here:\nhttps://github.com/SweetPinkMilkTea/hsrchareval/issues\033[0m")
