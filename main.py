@@ -386,16 +386,16 @@ try:
                 if lm < 3 or reverseMapping.get(bpName, bpName) in api_chars:
                     if list(breakpoints[bpName].values()) == [-1] * 9 + [[]]:
                         if lm == 1:
-                            print(f"\033[38;5;245m[{index+1:03}] - \033[31m{bpName.upper()} [No Breakpoints]\033[0m")
+                            print(f"\033[38;5;245m[{index:03}] - \033[31m{bpName.upper()} [No Breakpoints]\033[0m")
                             inrange.append(index)
                         nobp.append(index+1)
                     else:
                         if bpName not in characters.keys():
                             if lm == 1:
-                                print(f"\033[38;5;245m[{index+1:03}] - {bpName.upper()} | Not set\033[0m")
+                                print(f"\033[38;5;245m[{index:03}] - {bpName.upper()} | Not set\033[0m")
                                 inrange.append(index)
                         else:
-                            print(f"[{index+1:03}] - {bpName.upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[bpName]['updated'])}\033[0m")
+                            print(f"[{index:03}] - {bpName.upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[bpName]['updated'])}\033[0m")
                             inrange.append(index)
                 index += 1
 
@@ -404,7 +404,7 @@ try:
             except:
                 continue
             if x.isdigit():
-                if x not in inrange:
+                if int(x) not in inrange:
                     input("\n\033[31m[ Index out of range ]\033[0m")
                     continue
                 if int(x) in nobp:
