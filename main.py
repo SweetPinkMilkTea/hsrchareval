@@ -350,33 +350,62 @@ try:
                 continue
         if menuindex == 3:
             print("\033c\033[7m Select List Mode            >\033[0m\n\n[1] - All\n[2] - Only already set")
+            if uid != "0":
+                print("[3] - Available over API")
             try:
+                limit = 3 if uid == "0" else 4
                 lm = int(input("> "))
-                if lm not in [1,2]:
+                if lm not in range(1,limit):
                     raise ValueError("Invalid Index")
             except:
                 continue
-            print("\033cSelect character to edit state of:\n")
+            print(f"\033cSelect character to edit state of:\n{'' if lm < 3 else '\033[38;5;240mPlease wait, getting data...\033[0m'}", end="\n" if lm < 3 else '')
             nobp = []
-            for i in range(len(breakpoints.keys())):
-                if list(breakpoints[sorted(list(breakpoints.keys()))[i]].values()) == [-1] * 9 + [[]]:
-                    if lm == 1:
-                        print(f"\033[38;5;245m[{i+1:03}] - \033[31m{sorted(list(breakpoints.keys()))[i].upper()} [No Breakpoints]\033[0m")
-                        nobp.append(i+1)
-                else:
-                    if sorted(list(breakpoints.keys()))[i] not in characters.keys():
+            inrange = []
+            if lm == 3:
+                try:
+                    response = requests.get(f"https://api.mihomo.me/sr_info_parsed/{uid}?lang=en&version=v2")
+                    response.raise_for_status()
+                    api_data = response.json()
+                    api_chars = [x['name'].lower() for x in api_data["characters"]]
+                    
+                    reverseMapping = {v: k for k, v in api_name_mapping.items()}
+                    
+                    print("\r                            ")
+                except requests.exceptions.RequestException as e:
+                    print("\033cConnection to API has failed. Try again or use another filter.")
+                    try:
+                        input("\n\033[38;5;240m[ <- ]\033[0m")
+                    except:
+                        pass
+                    continue
+                    
+            
+            index = 1
+            for bpName in sorted(breakpoints.keys()):
+                if lm < 3 or reverseMapping.get(bpName, bpName) in api_chars:
+                    if list(breakpoints[bpName].values()) == [-1] * 9 + [[]]:
                         if lm == 1:
-                            print(f"\033[38;5;245m[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} | Not set\033[0m")
+                            print(f"\033[38;5;245m[{index+1:03}] - \033[31m{bpName.upper()} [No Breakpoints]\033[0m")
+                            inrange.append(index)
+                        nobp.append(index+1)
                     else:
-                        print(f"[{i+1:03}] - {sorted(list(breakpoints.keys()))[i].upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[sorted(list(breakpoints.keys()))[i]]['updated'])}\033[0m")
+                        if bpName not in characters.keys():
+                            if lm == 1:
+                                print(f"\033[38;5;245m[{index+1:03}] - {bpName.upper()} | Not set\033[0m")
+                                inrange.append(index)
+                        else:
+                            print(f"[{index+1:03}] - {bpName.upper()} \033[38;5;240m| Last updated: {configutil.timespan(characters[bpName]['updated'])}\033[0m")
+                            inrange.append(index)
+                index += 1
 
             try:
                 x = input("> ")
             except:
                 continue
             if x.isdigit():
-                if int(x) < 1 or int(x) > len(breakpoints.keys()):
-                    input("\n\033[31m[ Not an index ]\033[0m")
+                if x not in inrange:
+                    input("\n\033[31m[ Index out of range ]\033[0m")
                     continue
                 if int(x) in nobp:
                     input("\n\033[31m[ No breakpoints. Create them first. ]\033[0m")
